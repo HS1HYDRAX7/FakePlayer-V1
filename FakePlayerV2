@@ -7,7 +7,7 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 -- CONFIGURAÇÕES INICIAIS
-local FakeName = "LauraGrassi2"
+local FakeName = "Roblox"
 local fake
 local humanoid
 local rootPart
