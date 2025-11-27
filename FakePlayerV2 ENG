@@ -1,0 +1,207 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ChatService = game:GetService("Chat")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- INITIAL CONFIG
+local FakeName = "LauraGrassi2"
+local fake
+local humanoid
+local rootPart
+local walkTrack
+local canWalk = true -- Walk ON/OFF
+
+-- FUNCTION TO CREATE FAKE PLAYER
+local function createFake(name)
+    if fake then fake:Destroy() end
+    local userId = Players:GetUserIdFromNameAsync(name)
+    fake = Players:CreateHumanoidModelFromUserId(userId)
+    fake.Name = name
+    fake.Parent = workspace
+    fake:MoveTo(character.PrimaryPart.Position + Vector3.new(3,0,0))
+
+    humanoid = fake:FindFirstChildOfClass("Humanoid")
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 50
+    humanoid.UseJumpPower = true
+    rootPart = fake.PrimaryPart
+
+    -- ANIMATION
+    local animator = humanoid:FindFirstChild("Animator") or Instance.new("Animator", humanoid)
+    local walkAnim = Instance.new("Animation")
+    walkAnim.AnimationId = "rbxassetid://507777826"
+    walkTrack = animator:LoadAnimation(walkAnim)
+    walkTrack.Priority = Enum.AnimationPriority.Movement
+end
+
+createFake(FakeName)
+
+-- SMOOTH MOVEMENT FUNCTION
+local function smoothMove(current, target, alpha)
+	return current + (target - current) * alpha
+end
+
+-- OBSTACLE AVOIDANCE FUNCTION
+local function avoidObstacles(position, direction, distance)
+	local rayParams = RaycastParams.new()
+	rayParams.FilterDescendantsInstances = {fake, character}
+	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+	
+	local rayResult = workspace:Raycast(position, direction.Unit * distance, rayParams)
+	if rayResult then
+		local normal = rayResult.Normal
+		return (direction + normal * 2).Unit
+	end
+	return direction
+end
+
+-- FOLLOW PLAYER
+RunService.Heartbeat:Connect(function(dt)
+	if not character or not character.PrimaryPart or not rootPart then return end
+	if not canWalk then return end
+
+	local myPos = character.PrimaryPart.Position
+	local fakePos = rootPart.Position
+	local distance = (myPos - fakePos).Magnitude
+
+	-- Look at player
+	rootPart.CFrame = CFrame.new(fakePos, Vector3.new(myPos.X, fakePos.Y, myPos.Z))
+
+	if distance <= 5 then
+		if walkTrack.IsPlaying then walkTrack:Stop() end
+		return
+	end
+
+	local direction = (myPos - fakePos)
+	direction = avoidObstacles(fakePos, direction, 5)
+
+	local speed = math.clamp(distance * 2, 6, character.Humanoid.WalkSpeed)
+
+	local newPos = smoothMove(fakePos, fakePos + direction * speed * dt, 0.25)
+	fake:MoveTo(newPos)
+
+	if not walkTrack.IsPlaying then
+		walkTrack:Play()
+	end
+end)
+
+-- ROBLOX CHAT FUNCTION
+local function fakeSay(message)
+	if message ~= "" and rootPart then
+		ChatService:Chat(rootPart, message, Enum.ChatColor.Blue)
+	end
+end
+
+-- === UI ===
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+ScreenGui.ResetOnSpawn = false
+
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(0,360,0,150)
+Container.Position = UDim2.new(0,50,0,100)
+Container.BackgroundTransparency = 1
+Container.Parent = ScreenGui
+
+-- Floating red ball
+local Ball = Instance.new("ImageButton")
+Ball.Size = UDim2.new(0,50,0,50)
+Ball.Position = UDim2.new(0,0,0,0)
+Ball.BackgroundColor3 = Color3.fromRGB(255,0,0)
+Ball.BorderSizePixel = 0
+Ball.Image = ""
+Ball.Parent = Container
+
+-- UI Frame
+local FrameUI = Instance.new("Frame")
+FrameUI.Size = UDim2.new(0,300,0,140)
+FrameUI.Position = UDim2.new(0,60,0,0)
+FrameUI.BackgroundColor3 = Color3.fromRGB(50,50,50)
+FrameUI.BorderSizePixel = 0
+FrameUI.Visible = false
+FrameUI.Parent = Container
+
+-- Chat TextBox
+local TextBox = Instance.new("TextBox", FrameUI)
+TextBox.Size = UDim2.new(1,-10,0,40)
+TextBox.Position = UDim2.new(0,5,0,5)
+TextBox.PlaceholderText = "Type something for the fake to say..."
+TextBox.ClearTextOnFocus = false
+TextBox.BackgroundColor3 = Color3.fromRGB(70,70,70)
+TextBox.TextColor3 = Color3.fromRGB(255,255,255)
+TextBox.TextScaled = true
+
+-- Change Fake Name
+local NameBox = Instance.new("TextBox", FrameUI)
+NameBox.Size = UDim2.new(1,-10,0,30)
+NameBox.Position = UDim2.new(0,5,0,50)
+NameBox.PlaceholderText = "Fake Player Name"
+NameBox.Text = FakeName
+NameBox.ClearTextOnFocus = false
+NameBox.BackgroundColor3 = Color3.fromRGB(70,70,70)
+NameBox.TextColor3 = Color3.fromRGB(255,255,255)
+NameBox.TextScaled = true
+
+NameBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed and NameBox.Text ~= "" then
+		FakeName = NameBox.Text
+		createFake(FakeName)
+	end
+end)
+
+-- Walk ON/OFF Button
+local WalkButton = Instance.new("TextButton", FrameUI)
+WalkButton.Size = UDim2.new(1,-10,0,30)
+WalkButton.Position = UDim2.new(0,5,0,90)
+WalkButton.BackgroundColor3 = Color3.fromRGB(100,100,100)
+WalkButton.TextColor3 = Color3.fromRGB(255,255,255)
+WalkButton.Text = "Walk: ON"
+
+WalkButton.MouseButton1Click:Connect(function()
+	canWalk = not canWalk
+	WalkButton.Text = canWalk and "Walk: ON" or "Walk: OFF"
+end)
+
+-- Show/hide UI when clicking the ball
+Ball.MouseButton1Click:Connect(function()
+	FrameUI.Visible = not FrameUI.Visible
+end)
+
+-- Drag & Drop Ball
+local dragging, dragInput, dragStart, startPos
+Ball.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = Container.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+Ball.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		Container.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+									   startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Make the fake say what you type
+TextBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed and TextBox.Text ~= "" then
+		fakeSay(TextBox.Text)
+		TextBox.Text = ""
+	end
+end)
