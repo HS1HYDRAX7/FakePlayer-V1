@@ -1,4 +1,4 @@
- local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ChatService = game:GetService("Chat")
@@ -6,12 +6,13 @@ local ChatService = game:GetService("Chat")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
--- INITIAL CONFIG
+-- INITIAL SETTINGS
 local FakeName = "Roblox"
 local fake
 local humanoid
 local rootPart
 local walkTrack
+
 local canWalk = true -- Walk ON/OFF
 
 -- FUNCTION TO CREATE FAKE PLAYER
@@ -44,7 +45,7 @@ local function smoothMove(current, target, alpha)
 	return current + (target - current) * alpha
 end
 
--- OBSTACLE AVOIDANCE FUNCTION
+-- FUNCTION TO AVOID OBSTACLES
 local function avoidObstacles(position, direction, distance)
 	local rayParams = RaycastParams.new()
 	rayParams.FilterDescendantsInstances = {fake, character}
@@ -58,7 +59,7 @@ local function avoidObstacles(position, direction, distance)
 	return direction
 end
 
--- FOLLOW PLAYER
+-- FOLLOW PLAYER SMOOTHLY
 RunService.Heartbeat:Connect(function(dt)
 	if not character or not character.PrimaryPart or not rootPart then return end
 	if not canWalk then return end
@@ -83,12 +84,10 @@ RunService.Heartbeat:Connect(function(dt)
 	local newPos = smoothMove(fakePos, fakePos + direction * speed * dt, 0.25)
 	fake:MoveTo(newPos)
 
-	if not walkTrack.IsPlaying then
-		walkTrack:Play()
-	end
+	if not walkTrack.IsPlaying then walkTrack:Play() end
 end)
 
--- ROBLOX CHAT FUNCTION
+-- FAKE PLAYER CHAT FUNCTION
 local function fakeSay(message)
 	if message ~= "" and rootPart then
 		ChatService:Chat(rootPart, message, Enum.ChatColor.Blue)
@@ -105,13 +104,13 @@ Container.Position = UDim2.new(0,50,0,100)
 Container.BackgroundTransparency = 1
 Container.Parent = ScreenGui
 
--- Floating red ball
+-- Floating image of Fake Player (65x65)
 local Ball = Instance.new("ImageButton")
-Ball.Size = UDim2.new(0,50,0,50)
+Ball.Size = UDim2.new(0,65,0,65) -- increased size from 50x50
 Ball.Position = UDim2.new(0,0,0,0)
-Ball.BackgroundColor3 = Color3.fromRGB(255,0,0)
+Ball.BackgroundTransparency = 1
 Ball.BorderSizePixel = 0
-Ball.Image = ""
+Ball.Image = "rbxassetid://128308509267373"
 Ball.Parent = Container
 
 -- UI Frame
@@ -123,7 +122,7 @@ FrameUI.BorderSizePixel = 0
 FrameUI.Visible = false
 FrameUI.Parent = Container
 
--- Chat TextBox
+-- TextBox for chat
 local TextBox = Instance.new("TextBox", FrameUI)
 TextBox.Size = UDim2.new(1,-10,0,40)
 TextBox.Position = UDim2.new(0,5,0,5)
@@ -133,7 +132,7 @@ TextBox.BackgroundColor3 = Color3.fromRGB(70,70,70)
 TextBox.TextColor3 = Color3.fromRGB(255,255,255)
 TextBox.TextScaled = true
 
--- Change Fake Name
+-- TextBox to change Fake Player's name
 local NameBox = Instance.new("TextBox", FrameUI)
 NameBox.Size = UDim2.new(1,-10,0,30)
 NameBox.Position = UDim2.new(0,5,0,50)
@@ -164,12 +163,12 @@ WalkButton.MouseButton1Click:Connect(function()
 	WalkButton.Text = canWalk and "Walk: ON" or "Walk: OFF"
 end)
 
--- Show/hide UI when clicking the ball
+-- Show/Hide UI on image click
 Ball.MouseButton1Click:Connect(function()
 	FrameUI.Visible = not FrameUI.Visible
 end)
 
--- Drag & Drop Ball
+-- Drag & Drop the image
 local dragging, dragInput, dragStart, startPos
 Ball.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -198,7 +197,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Make the fake say what you type
+-- Make the fake say something when pressing Enter
 TextBox.FocusLost:Connect(function(enterPressed)
 	if enterPressed and TextBox.Text ~= "" then
 		fakeSay(TextBox.Text)
