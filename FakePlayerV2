@@ -104,13 +104,13 @@ Container.Position = UDim2.new(0,50,0,100)
 Container.BackgroundTransparency = 1
 Container.Parent = ScreenGui
 
--- Bola flutuante vermelha
+-- Imagem flutuante do Fake (65x65)
 local Ball = Instance.new("ImageButton")
-Ball.Size = UDim2.new(0,50,0,50)
+Ball.Size = UDim2.new(0,65,0,65) -- aumentada para 65x65
 Ball.Position = UDim2.new(0,0,0,0)
-Ball.BackgroundColor3 = Color3.fromRGB(255,0,0)
+Ball.BackgroundTransparency = 1
 Ball.BorderSizePixel = 0
-Ball.Image = ""
+Ball.Image = "rbxassetid://128308509267373"
 Ball.Parent = Container
 
 -- Frame do UI
@@ -163,12 +163,12 @@ WalkButton.MouseButton1Click:Connect(function()
 	WalkButton.Text = canWalk and "Walk: ON" or "Walk: OFF"
 end)
 
--- Mostrar/ocultar UI ao clicar na bola
+-- Mostrar/ocultar UI ao clicar na imagem
 Ball.MouseButton1Click:Connect(function()
 	FrameUI.Visible = not FrameUI.Visible
 end)
 
--- Drag & Drop da bola
+-- Drag & Drop da imagem
 local dragging, dragInput, dragStart, startPos
 Ball.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
