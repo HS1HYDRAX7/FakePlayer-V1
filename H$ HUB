@@ -1,0 +1,266 @@
+--========================================================--
+--=================== H$ HUB COM KEY ====================--
+--========================================================--
+
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+-- Cria janela com Key
+local Window = Rayfield:CreateWindow({
+    Name = "H$ HUB",
+    LoadingTitle = "Carregando...",
+    LoadingSubtitle = "by Hydra",
+    ConfigurationSaving = { Enabled = false },
+    KeySystem = true, -- Ativa verificação de Key
+    KeySettings = {
+        Title = "H$ HUB Key",
+        Subtitle = "Digite sua Key",
+        Note = "Entre com a Key fornecida",
+        FileName = "HydraKey",
+        SaveKey = true,
+        Key = "MFF❤️" -- Key válida
+    }
+})
+
+------------------------------------------------------------
+-- VARIÁVEIS GERAIS
+------------------------------------------------------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local playerEnabled = false
+local customEnabled = false
+local autoPlayEnabled = false
+
+local floorPart = nil
+local floorSize = 300
+
+local cframeSpeed = 1
+local jumpPower = 50
+local gravity = 196.2
+
+------------------------------------------------------------
+-- FUNÇÃO: Criar Chão
+------------------------------------------------------------
+local function CreateFloor()
+    if floorPart then floorPart:Destroy() end
+
+    floorPart = Instance.new("Part")
+    floorPart.Name = "HydraFloor"
+    floorPart.Size = Vector3.new(floorSize, 1, floorSize)
+    floorPart.Anchored = true
+    floorPart.Transparency = 0.5
+    floorPart.Color = Color3.fromRGB(0, 255, 0)
+    floorPart.CanCollide = true
+    floorPart.Parent = workspace
+
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        floorPart.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 3, 0))
+    end
+end
+
+------------------------------------------------------------
+-- PLAYER TAB
+------------------------------------------------------------
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+PlayerTab:CreateToggle({
+    Name = "Ativar Player Section",
+    CurrentValue = false,
+    Callback = function(v)
+        playerEnabled = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "CFrame Speed",
+    Range = {1,200},
+    Increment = 1,
+    CurrentValue = 1,
+    Callback = function(v)
+        cframeSpeed = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Jump Power",
+    Range = {1,300},
+    Increment = 1,
+    CurrentValue = 50,
+    Callback = function(v)
+        jumpPower = v
+        if playerEnabled and LocalPlayer.Character then
+            local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
+            if hum then hum.JumpPower = jumpPower end
+        end
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Gravity",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 196,
+    Callback = function(v)
+        gravity = v
+        if playerEnabled then
+            workspace.Gravity = v
+        end
+    end
+})
+
+------------------------------------------------------------
+-- MOVIMENTO DO PLAYER (APENAS CFrame Speed NORMAL)
+------------------------------------------------------------
+RunService.Heartbeat:Connect(function()
+    if not playerEnabled then return end
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+
+    if hrp and hum then
+        hum.JumpPower = jumpPower
+        workspace.Gravity = gravity
+
+        local move = hum.MoveDirection
+        if move.Magnitude > 0 then
+            hrp.CFrame = hrp.CFrame + (move * cframeSpeed / 10)
+        end
+    end
+end)
+
+------------------------------------------------------------
+-- CUSTOM TAB
+------------------------------------------------------------
+local CustomTab = Window:CreateTab("Custom", 4483362458)
+
+CustomTab:CreateToggle({
+    Name = "Ativar Custom",
+    CurrentValue = false,
+    Callback = function(v)
+        customEnabled = v
+
+        if customEnabled then
+            CreateFloor()
+        else
+            if floorPart then floorPart:Destroy() end
+        end
+    end
+})
+
+CustomTab:CreateSlider({
+    Name = "Tamanho do Chão",
+    Range = {50,500},
+    Increment = 10,
+    CurrentValue = 300,
+    Callback = function(v)
+        floorSize = v
+        if customEnabled then
+            CreateFloor()
+        end
+    end
+})
+
+CustomTab:CreateButton({
+    Name = "🔼 Subir 5 studs",
+    Callback = function()
+        if customEnabled and floorPart then
+            floorPart.CFrame += Vector3.new(0,5,0)
+
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = floorPart.CFrame + Vector3.new(0,3,0)
+            end
+        end
+    end
+})
+
+CustomTab:CreateButton({
+    Name = "🔽 Descer 5 studs",
+    Callback = function()
+        if customEnabled and floorPart then
+            floorPart.CFrame -= Vector3.new(0,5,0)
+        end
+    end
+})
+
+------------------------------------------------------------
+-- AUTO PLAY (MOVIMENTO SUAVE + FUGA + DESVIO)
+------------------------------------------------------------
+CustomTab:CreateToggle({
+    Name = "Auto Play (Fugir de jogadores)",
+    CurrentValue = false,
+    Callback = function(v)
+        autoPlayEnabled = v
+    end
+})
+
+RunService.Heartbeat:Connect(function()
+    if not autoPlayEnabled then return end
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    ------------------------------------------------------------
+    -- ENCONTRAR PLAYER MAIS PRÓXIMO
+    ------------------------------------------------------------
+    local closest = nil
+    local closestDist = 999
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer 
+        and plr.Character 
+        and plr.Character:FindFirstChild("HumanoidRootPart") then
+
+            local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if dist < closestDist then
+                closestDist = dist
+                closest = plr
+            end
+        end
+    end
+
+    if closest and closestDist <= 35 then
+        local targetHRP = closest.Character.HumanoidRootPart
+
+        ------------------------------------------------------------
+        -- FUGIR DO PLAYER (DIREÇÃO)
+        ------------------------------------------------------------
+        local runDir = (hrp.Position - targetHRP.Position).Unit
+
+        ------------------------------------------------------------
+        -- DESVIAR DE OBSTÁCULOS
+        ------------------------------------------------------------
+        local ray = Ray.new(hrp.Position, hrp.CFrame.LookVector * 5)
+        local hit = workspace:FindPartOnRay(ray, char)
+
+        if hit then
+            local left = hrp.CFrame.RightVector * -1
+            if not workspace:FindPartOnRay(Ray.new(hrp.Position, left * 5), char) then
+                runDir = left
+            else
+                local right = hrp.CFrame.RightVector
+                if not workspace:FindPartOnRay(Ray.new(hrp.Position, right * 5), char) then
+                    runDir = right
+                else
+                    runDir = Vector3.new(math.random(-1,1),0,math.random(-1,1)).Unit
+                end
+            end
+        end
+
+        ------------------------------------------------------------
+        -- MOVIMENTO SUAVE (SEM TELEPORTE)
+        ------------------------------------------------------------
+        local smoothSpeed = 1.5
+        hrp.CFrame = hrp.CFrame + (runDir * smoothSpeed)
+
+        ------------------------------------------------------------
+        -- MANTER ANIMAÇÃO NORMAL
+        ------------------------------------------------------------
+        hum:Move(runDir, true)
+    end
+end)
