@@ -23,7 +23,6 @@ local LocalPlayer = Players.LocalPlayer
 
 -- Flags
 local playerEnabled = false
-local autoPlayEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
 
@@ -90,7 +89,10 @@ for _, theme in ipairs(Themes) do
     SettingsTab:CreateButton({
         Name = "Apply " .. theme.Name,
         Callback = function()
-            Window:ChangeTheme(theme.Identifier)
+            -- Correct method to change theme
+            if Window.ChangeTheme then
+                Window:ChangeTheme(theme.Identifier)
+            end
         end
     })
 end
@@ -134,61 +136,5 @@ RunService.Heartbeat:Connect(function()
     if moveDir.Magnitude > 0 then
         local bypassSpeed = cframeSpeed * 0.1 + math.random() * 0.05
         hrp.CFrame = hrp.CFrame + (moveDir * bypassSpeed)
-    end
-end)
-
--- Auto Play Tab
-local AutoTab = Window:CreateTab("Auto Play", 4483362458)
-
-AutoTab:CreateToggle({
-    Name = "Enable Auto Play",
-    CurrentValue = false,
-    Callback = function(v) autoPlayEnabled = v end
-})
-
--- Auto Play Logic (natural movement)
-RunService.Heartbeat:Connect(function()
-    if not autoPlayEnabled then return end
-
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-
-    local closest = nil
-    local closestDist = 999
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (hrp.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-            if dist < closestDist then
-                closestDist = dist
-                closest = plr
-            end
-        end
-    end
-
-    if closest and closestDist <= 35 then
-        local targetHRP = closest.Character.HumanoidRootPart
-        local runDir = (hrp.Position - targetHRP.Position)
-        if runDir.Magnitude > 0 then runDir = runDir.Unit end
-
-        -- Obstacle avoidance
-        local ray = Ray.new(hrp.Position, hrp.CFrame.LookVector * 5)
-        local hit = workspace:FindPartOnRay(ray, char)
-        if hit then
-            local left = -hrp.CFrame.RightVector
-            local right = hrp.CFrame.RightVector
-            if not workspace:FindPartOnRay(Ray.new(hrp.Position, left*5), char) then
-                runDir = left
-            elseif not workspace:FindPartOnRay(Ray.new(hrp.Position, right*5), char) then
-                runDir = right
-            else
-                runDir = Vector3.new(math.random(-1,1),0,math.random(-1,1)).Unit
-            end
-        end
-
-        local smoothSpeed = 1.5
-        hum:Move(runDir * smoothSpeed, true)
     end
 end)
