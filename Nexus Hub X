@@ -30,7 +30,7 @@ local infJumpEnabled = false
 local cframeSpeed = 1
 local gravity = 196.2
 
--- Player Tab with icon
+-- Player Tab
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({
@@ -70,24 +70,27 @@ PlayerTab:CreateToggle({
     Callback = function(v) infJumpEnabled = v end
 })
 
--- Settings Tab with icon
+-- Settings Tab
 local SettingsTab = Window:CreateTab("Settings", 98986046108698)
 
--- Official themes list
+-- Official Rayfield themes
 local Themes = {
-    Default = "Default",
-    Dark = "Dark",
-    Light = "Light",
-    Midnight = "Midnight",
-    Neon = "Neon",
-    Sunset = "Sunset"
+    {Name = "Default", Identifier = "Default"},
+    {Name = "Amber Glow", Identifier = "AmberGlow"},
+    {Name = "Amethyst", Identifier = "Amethyst"},
+    {Name = "Bloom", Identifier = "Bloom"},
+    {Name = "Dark Blue", Identifier = "DarkBlue"},
+    {Name = "Green", Identifier = "Green"},
+    {Name = "Light", Identifier = "Light"},
+    {Name = "Ocean", Identifier = "Ocean"},
+    {Name = "Serenity", Identifier = "Serenity"}
 }
 
-for name, themeName in pairs(Themes) do
+for _, theme in ipairs(Themes) do
     SettingsTab:CreateButton({
-        Name = "Apply " .. name .. " Theme",
+        Name = "Apply " .. theme.Name,
         Callback = function()
-            Rayfield:ApplyTheme(themeName)
+            Window:ChangeTheme(theme.Identifier)
         end
     })
 end
