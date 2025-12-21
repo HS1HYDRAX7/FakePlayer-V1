@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
         Title = "Hub Key",
         Subtitle = "Enter the access key",
         FileName = "HydraKey",
-        SaveKey = false,
+        SaveKey = true,
         Key = "MYBF"
     }
 })
@@ -30,8 +30,8 @@ local infJumpEnabled = false
 local cframeSpeed = 1
 local gravity = 196.2
 
--- Player Tab
-local PlayerTab = Window:CreateTab("Player", 4483362458)
+-- Player Tab with icon
+local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({
     Name = "Enable Player",
@@ -41,7 +41,7 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
     Name = "CFrame Speed",
-    Range = {1, 100},
+    Range = {1, 500},
     Increment = 1,
     CurrentValue = 1,
     Callback = function(v) cframeSpeed = v end
@@ -61,20 +61,38 @@ PlayerTab:CreateSlider({
 PlayerTab:CreateToggle({
     Name = "Enable Noclip",
     CurrentValue = false,
-    Callback = function(v)
-        noclipEnabled = v
-    end
+    Callback = function(v) noclipEnabled = v end
 })
 
 PlayerTab:CreateToggle({
     Name = "Enable InfJump",
     CurrentValue = false,
-    Callback = function(v)
-        infJumpEnabled = v
-    end
+    Callback = function(v) infJumpEnabled = v end
 })
 
--- Noclip implementation
+-- Settings Tab with icon
+local SettingsTab = Window:CreateTab("Settings", 98986046108698)
+
+-- Official themes list
+local Themes = {
+    Default = "Default",
+    Dark = "Dark",
+    Light = "Light",
+    Midnight = "Midnight",
+    Neon = "Neon",
+    Sunset = "Sunset"
+}
+
+for name, themeName in pairs(Themes) do
+    SettingsTab:CreateButton({
+        Name = "Apply " .. name .. " Theme",
+        Callback = function()
+            Rayfield:ApplyTheme(themeName)
+        end
+    })
+end
+
+-- Noclip
 RunService.Stepped:Connect(function()
     if noclipEnabled then
         local char = LocalPlayer.Character
@@ -88,7 +106,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- InfJump implementation
+-- InfJump
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -98,7 +116,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Player Movement with CFrame Bypass (slower)
+-- Player Movement (CFrame Bypass slower)
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
 
