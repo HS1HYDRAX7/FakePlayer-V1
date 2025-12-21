@@ -1,140 +1,64 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
--- Main Window with Key
-local Window = Rayfield:CreateWindow({
-    Name = "Nexus Hub v1.0 ☄️",
-    LoadingTitle = "Loading...",
-    LoadingSubtitle = "by Hydra",
-    ConfigurationSaving = { Enabled = true },
-    KeySystem = true,
-    KeySettings = {
-        Title = "Hub Key",
-        Subtitle = "Enter the access key",
-        FileName = "HydraKey",
-        SaveKey = false,
-        Key = "MYBF"
-    }
-})
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-
--- Flags
-local playerEnabled = false
-local noclipEnabled = false
-local infJumpEnabled = false
-
-local cframeSpeed = 1
-local gravity = 196.2
-
--- Player Tab
-local PlayerTab = Window:CreateTab("Player", 110476445363181)
-
-PlayerTab:CreateToggle({
-    Name = "Enable Player",
-    CurrentValue = false,
-    Callback = function(v) playerEnabled = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "CFrame Speed",
-    Range = {1, 500},
-    Increment = 1,
-    CurrentValue = 1,
-    Callback = function(v) cframeSpeed = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "Gravity",
-    Range = {0, 500},
-    Increment = 1,
-    CurrentValue = 196,
-    Callback = function(v)
-        gravity = v
-        if playerEnabled then workspace.Gravity = v end
-    end
-})
-
-PlayerTab:CreateToggle({
-    Name = "Enable Noclip",
-    CurrentValue = false,
-    Callback = function(v) noclipEnabled = v end
-})
-
-PlayerTab:CreateToggle({
-    Name = "Enable InfJump",
-    CurrentValue = false,
-    Callback = function(v) infJumpEnabled = v end
-})
-
--- Settings Tab
-local SettingsTab = Window:CreateTab("Settings", 98986046108698)
-
--- Official Rayfield themes
-local Themes = {
-    {Name = "Default", Identifier = "Default"},
-    {Name = "Amber Glow", Identifier = "AmberGlow"},
-    {Name = "Amethyst", Identifier = "Amethyst"},
-    {Name = "Bloom", Identifier = "Bloom"},
-    {Name = "Dark Blue", Identifier = "DarkBlue"},
-    {Name = "Green", Identifier = "Green"},
-    {Name = "Light", Identifier = "Light"},
-    {Name = "Ocean", Identifier = "Ocean"},
-    {Name = "Serenity", Identifier = "Serenity"}
-}
-
-for _, theme in ipairs(Themes) do
-    SettingsTab:CreateButton({
-        Name = "Apply " .. theme.Name,
-        Callback = function()
-            -- Correct method to change theme
-            if Window.ChangeTheme then
-                Window:ChangeTheme(theme.Identifier)
-            end
-        end
+local function CreateHub()
+    local Window = Rayfield:CreateWindow({
+        Name = "Nexus Hub v1.0 ☄️",
+        ConfigurationSaving = { Enabled = true },
+        KeySystem = true,
+        KeySettings = {
+            FileName = "HydraKey",
+            SaveKey = false,
+            Key = "MYBF"
+        }
     })
-end
 
--- Noclip
-RunService.Stepped:Connect(function()
-    if noclipEnabled then
-        local char = LocalPlayer.Character
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local playerEnabled = false
+    local noclipEnabled = false
+    local infJumpEnabled = false
+    local cframeSpeed = 1
+    local gravity = 196.2
+
+    local PlayerTab = Window:CreateTab("Player", 110476445363181)
+
+    PlayerTab:CreateToggle({Name="Enable Player", CurrentValue=false, Callback=function(v) playerEnabled=v end})
+    PlayerTab:CreateSlider({Name="CFrame Speed", Range={1,500}, Increment=1, CurrentValue=1, Callback=function(v)cframeSpeed=v end})
+    PlayerTab:CreateSlider({Name="Gravity", Range={0,500}, Increment=1, CurrentValue=196, Callback=function(v)gravity=v if playerEnabled then workspace.Gravity=v end end})
+    PlayerTab:CreateToggle({Name="Enable Noclip", CurrentValue=false, Callback=function(v)noclipEnabled=v end})
+    PlayerTab:CreateToggle({Name="Enable InfJump", CurrentValue=false, Callback=function(v)infJumpEnabled=v end})
+
+    RunService.Stepped:Connect(function()
+        if noclipEnabled then
+            local char=LocalPlayer.Character
+            if char then
+                for _,part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide=false end
                 end
             end
         end
-    end
-end)
+    end)
 
--- InfJump
-UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    UserInputService.JumpRequest:Connect(function()
+        if infJumpEnabled and LocalPlayer.Character then
+            local hum=LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
         end
-    end
-end)
+    end)
 
--- Player Movement (CFrame Bypass slower)
-RunService.Heartbeat:Connect(function()
-    if not playerEnabled then return end
+    RunService.Heartbeat:Connect(function()
+        if not playerEnabled then return end
+        local char=LocalPlayer.Character
+        local hrp=char and char:FindFirstChild("HumanoidRootPart")
+        local hum=char and char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+        workspace.Gravity=gravity
+        local moveDir=hum.MoveDirection
+        if moveDir.Magnitude>0 then hrp.CFrame=hrp.CFrame+(moveDir*(cframeSpeed*0.1+math.random()*0.05)) end
+    end)
+end
 
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-
-    workspace.Gravity = gravity
-
-    local moveDir = hum.MoveDirection
-    if moveDir.Magnitude > 0 then
-        local bypassSpeed = cframeSpeed * 0.1 + math.random() * 0.05
-        hrp.CFrame = hrp.CFrame + (moveDir * bypassSpeed)
-    end
-end)
+CreateHub()
