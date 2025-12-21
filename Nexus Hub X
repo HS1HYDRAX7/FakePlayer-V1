@@ -11,20 +11,23 @@ local Window = Rayfield:CreateWindow({
         Title = "Hub Key",
         Subtitle = "Enter the access key",
         FileName = "HydraKey",
-        SaveKey = true,
+        SaveKey = false,
         Key = "MYBF"
     }
 })
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
+-- Flags
 local playerEnabled = false
 local autoPlayEnabled = false
+local noclipEnabled = false
+local infJumpEnabled = false
 
 local cframeSpeed = 1
-local jumpPower = 50
 local gravity = 196.2
 
 -- Player Tab
@@ -38,24 +41,10 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
     Name = "CFrame Speed",
-    Range = {1, 500},
+    Range = {1, 100},
     Increment = 1,
     CurrentValue = 1,
     Callback = function(v) cframeSpeed = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "Jump Power",
-    Range = {1, 300},
-    Increment = 1,
-    CurrentValue = 50,
-    Callback = function(v)
-        jumpPower = v
-        if playerEnabled and LocalPlayer.Character then
-            local hum = LocalPlayer.Character:FindFirstChild("Humanoid")
-            if hum then hum.JumpPower = jumpPower end
-        end
-    end
 })
 
 PlayerTab:CreateSlider({
@@ -69,23 +58,61 @@ PlayerTab:CreateSlider({
     end
 })
 
--- Player Movement with CFrame Speed Bypass
+PlayerTab:CreateToggle({
+    Name = "Enable Noclip",
+    CurrentValue = false,
+    Callback = function(v)
+        noclipEnabled = v
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Enable InfJump",
+    CurrentValue = false,
+    Callback = function(v)
+        infJumpEnabled = v
+    end
+})
+
+-- Noclip implementation
+RunService.Stepped:Connect(function()
+    if noclipEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- InfJump implementation
+UserInputService.JumpRequest:Connect(function()
+    if infJumpEnabled and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- Player Movement with CFrame Bypass (slower)
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
 
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hrp or not hum then return end
 
-    hum.JumpPower = jumpPower
     workspace.Gravity = gravity
 
-    local move = hum.MoveDirection
-    if move.Magnitude > 0 then
-        -- Bypass movement: multiply speed, keep smooth
-        local bypassSpeed = cframeSpeed * 0.3 + math.random() * 0.1
-        hrp.CFrame = hrp.CFrame + (move * bypassSpeed)
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0 then
+        local bypassSpeed = cframeSpeed * 0.1 + math.random() * 0.05
+        hrp.CFrame = hrp.CFrame + (moveDir * bypassSpeed)
     end
 end)
 
@@ -98,13 +125,13 @@ AutoTab:CreateToggle({
     Callback = function(v) autoPlayEnabled = v end
 })
 
--- Auto Play Logic
+-- Auto Play Logic (natural movement)
 RunService.Heartbeat:Connect(function()
     if not autoPlayEnabled then return end
 
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hrp or not hum then return end
 
     local closest = nil
@@ -141,7 +168,6 @@ RunService.Heartbeat:Connect(function()
         end
 
         local smoothSpeed = 1.5
-        hrp.CFrame = hrp.CFrame + (runDir * smoothSpeed)
-        hum:Move(runDir, true)
+        hum:Move(runDir * smoothSpeed, true)
     end
 end)
