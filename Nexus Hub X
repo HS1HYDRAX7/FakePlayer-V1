@@ -5,8 +5,12 @@ local function CreateHub()
         Name = "Nexus Hub v1.0 ☄️",
         ConfigurationSaving = { Enabled = true },
         KeySystem = true,
-        KeySettings = { FileName = "HydraKey", SaveKey = false, Key = "MYBF" },
-        Theme = "DarkBlue"
+        KeySettings = {
+            FileName = "HydraKey",
+            SaveKey = false,
+            Key = "MYBF"
+        },
+        Theme = "Amethyst" -- Tema aplicado
     })
 
     local Players = game:GetService("Players")
@@ -54,9 +58,7 @@ local function CreateHub()
         if not hrp or not hum then return end
         workspace.Gravity=gravity
         local moveDir=hum.MoveDirection
-        if moveDir.Magnitude>0 then
-            hrp.CFrame=hrp.CFrame+(moveDir*(cframeSpeed*0.1+math.random()*0.05))
-        end
+        if moveDir.Magnitude>0 then hrp.CFrame=hrp.CFrame+(moveDir*(cframeSpeed*0.1+math.random()*0.05)) end
     end)
 end
 
