@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
         Title = "Hub Key",
         Subtitle = "Enter the access key",
         FileName = "HydraKey",
-        SaveKey = true,
+        SaveKey = false,
         Key = "MYBF"
     }
 })
