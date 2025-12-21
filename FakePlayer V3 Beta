@@ -1,275 +1,255 @@
+--------------------------------------------------
+-- SERVICES
+--------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local ChatService = game:GetService("Chat")
-local PathfindingService = game:GetService("PathfindingService")
 
+--------------------------------------------------
+-- PLAYER
+--------------------------------------------------
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
--- CONFIGURAÇÕES INICIAIS
+--------------------------------------------------
+-- CONFIG
+--------------------------------------------------
 local FakeName = "LauraGrassi2"
-local fake
-local humanoid
-local rootPart
-local walkTrack
-local idleTrack
-local jumpTrack
-local isResetting = false
+local MIN_DISTANCE = 6
+local MOVE_SPEED = 8
+
+--------------------------------------------------
+-- VARIÁVEIS
+--------------------------------------------------
+local fake, humanoid, rootPart
+local idleTrack, walkTrack
 local canWalk = true
-local MIN_DISTANCE = 5
 
--- FUNÇÃO PARA CRIAR O FAKE PLAYER
-local function createFake(name)
-    if isResetting then return end
-    isResetting = true
+--------------------------------------------------
+-- CREATE FAKE (R6 + R15)
+--------------------------------------------------
+local function createFake()
+	if fake then fake:Destroy() end
 
-    -- Destruir fake antigo com segurança
-    if fake and fake.Parent then
-        if walkTrack and walkTrack.IsPlaying then walkTrack:Stop() end
-        if idleTrack and idleTrack.IsPlaying then idleTrack:Stop() end
-        if jumpTrack and jumpTrack.IsPlaying then jumpTrack:Stop() end
-        fake:Destroy()
-        fake = nil
-        humanoid = nil
-        rootPart = nil
-        walkTrack = nil
-        idleTrack = nil
-        jumpTrack = nil
-    end
+	local userId
+	local ok = pcall(function()
+		userId = Players:GetUserIdFromNameAsync(FakeName)
+	end)
+	if not ok then
+		warn("Nick inválido")
+		return
+	end
 
-    -- Criar humanoid model
-    local userId = Players:GetUserIdFromNameAsync(name)
-    fake = Players:CreateHumanoidModelFromUserId(userId)
-    fake.Name = name
-    fake.Parent = workspace
-    fake:MoveTo(character.PrimaryPart.Position + Vector3.new(3,0,0))
+	fake = Players:CreateHumanoidModelFromUserId(userId)
+	fake.Name = FakeName
+	fake.Parent = workspace
 
-    humanoid = fake:FindFirstChildOfClass("Humanoid")
-    humanoid.WalkSpeed = 16 -- velocidade base
-    humanoid.JumpPower = 50
-    humanoid.UseJumpPower = true
-    rootPart = fake.PrimaryPart
+	task.wait()
 
-    -- Animator
-    local animator = humanoid:FindFirstChild("Animator")
-    if not animator then
-        animator = Instance.new("Animator")
-        animator.Parent = humanoid
-    end
+	rootPart = fake:FindFirstChild("HumanoidRootPart") or fake.PrimaryPart
+	humanoid = fake:FindFirstChildOfClass("Humanoid")
 
-    -- Idle padrão Roblox
-    local idleAnim = Instance.new("Animation")
-    idleAnim.AnimationId = "rbxassetid://507766666"
-    idleTrack = animator:LoadAnimation(idleAnim)
-    idleTrack.Priority = Enum.AnimationPriority.Idle
-    idleTrack:Play()
+	if not rootPart or not humanoid then
+		warn("Rig inválido")
+		return
+	end
 
-    -- Walk padrão Roblox
-    local walkAnim = Instance.new("Animation")
-    walkAnim.AnimationId = "rbxassetid://507777826"
-    walkTrack = animator:LoadAnimation(walkAnim)
-    walkTrack.Priority = Enum.AnimationPriority.Movement
+	fake:PivotTo(character:GetPivot() * CFrame.new(4,0,0))
 
-    -- Jump padrão Roblox
-    local jumpAnim = Instance.new("Animation")
-    jumpAnim.AnimationId = "rbxassetid://507777860"
-    jumpTrack = animator:LoadAnimation(jumpAnim)
-    jumpTrack.Priority = Enum.AnimationPriority.Action
+	-- Animator
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	if not animator then
+		animator = Instance.new("Animator")
+		animator.Parent = humanoid
+	end
 
-    isResetting = false
+	-- Idle (R6 e R15)
+	local idle = Instance.new("Animation")
+	idle.AnimationId = "rbxassetid://507766666"
+	idleTrack = animator:LoadAnimation(idle)
+	idleTrack:Play()
+
+	-- Walk (R6 e R15)
+	local walk = Instance.new("Animation")
+	walk.AnimationId = "rbxassetid://507777826"
+	walkTrack = animator:LoadAnimation(walk)
 end
 
-createFake(FakeName)
+--------------------------------------------------
+-- FOLLOW (MOVIMENTO REAL)
+--------------------------------------------------
+RunService.Heartbeat:Connect(function(dt)
+	if not fake or not rootPart or not canWalk then return end
 
--- CHAT NORMAL DO ROBLOX
-local function fakeSay(message)
-    if message ~= "" and rootPart then
-        ChatService:Chat(rootPart, message, Enum.ChatColor.Blue)
-    end
-end
+	local targetPos = character:GetPivot().Position
+	local currentPos = fake:GetPivot().Position
+	local offset = targetPos - currentPos
+	local distance = offset.Magnitude
 
--- Função de seguir jogador com Pathfinding
-local function followPlayerPathfinding()
-    if not humanoid or not rootPart then return end
-    local targetPos = character.PrimaryPart.Position
+	if distance > MIN_DISTANCE then
+		local dir = offset.Unit
+		local newPos = currentPos + dir * MOVE_SPEED * dt
 
-    -- Criar caminho
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        AgentJumpHeight = 7,
-        AgentMaxSlope = 45
-    })
-    path:ComputeAsync(rootPart.Position, targetPos)
-    local waypoints = path:GetWaypoints()
+		fake:PivotTo(CFrame.new(newPos, targetPos))
 
-    for i, waypoint in ipairs(waypoints) do
-        if not humanoid or not rootPart then break end
-
-        -- Olhar para o jogador sempre
-        rootPart.CFrame = CFrame.new(rootPart.Position, Vector3.new(character.PrimaryPart.Position.X, rootPart.Position.Y, character.PrimaryPart.Position.Z))
-
-        -- Jump automático
-        if waypoint.Action == Enum.PathWaypointAction.Jump and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
-            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            if not jumpTrack.IsPlaying then jumpTrack:Play() end
-        end
-
-        humanoid:MoveTo(waypoint.Position)
-        humanoid.MoveToFinished:Wait()
-    end
-end
-
--- Atualizar movimento do fake a cada frame
-RunService.Heartbeat:Connect(function()
-    if not humanoid or not rootPart then return end
-
-    -- Sempre olhar para o jogador
-    rootPart.CFrame = CFrame.new(rootPart.Position, Vector3.new(character.PrimaryPart.Position.X, rootPart.Position.Y, character.PrimaryPart.Position.Z))
-
-    if not canWalk then
-        if walkTrack.IsPlaying then walkTrack:Stop() end
-        if not idleTrack.IsPlaying then idleTrack:Play() end
-        return
-    end
-
-    local distance = (rootPart.Position - character.PrimaryPart.Position).Magnitude
-
-    if distance > MIN_DISTANCE then
-        -- Andar
-        if not walkTrack.IsPlaying then walkTrack:Play() end
-        if idleTrack.IsPlaying then idleTrack:Stop() end
-        followPlayerPathfinding()
-    else
-        -- Parar
-        if walkTrack.IsPlaying then walkTrack:Stop() end
-        if not idleTrack.IsPlaying then idleTrack:Play() end
-    end
+		if not walkTrack.IsPlaying then walkTrack:Play() end
+		if idleTrack.IsPlaying then idleTrack:Stop() end
+	else
+		if walkTrack.IsPlaying then walkTrack:Stop() end
+		if not idleTrack.IsPlaying then idleTrack:Play() end
+	end
 end)
 
--- === UI ===
-local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
 ScreenGui.ResetOnSpawn = false
 
-local Container = Instance.new("Frame")
-Container.Size = UDim2.new(0,360,0,180)
-Container.Position = UDim2.new(0,50,0,100)
+local Container = Instance.new("Frame", ScreenGui)
+Container.Size = UDim2.new(0,360,0,220)
+Container.Position = UDim2.new(0,50,0,120)
 Container.BackgroundTransparency = 1
-Container.Parent = ScreenGui
 
-local Ball = Instance.new("ImageButton")
+--------------------------------------------------
+-- BOLA (DRAG & DROP)
+--------------------------------------------------
+local Ball = Instance.new("ImageButton", Container)
 Ball.Size = UDim2.new(0,50,0,50)
-Ball.Position = UDim2.new(0,0,0,0)
 Ball.BackgroundColor3 = Color3.fromRGB(255,0,0)
-Ball.BorderSizePixel = 0
 Ball.Image = ""
-Ball.Parent = Container
+Ball.BorderSizePixel = 0
+Instance.new("UICorner", Ball).CornerRadius = UDim.new(1,0)
 
-local FrameUI = Instance.new("Frame")
-FrameUI.Size = UDim2.new(0,300,0,160)
-FrameUI.Position = UDim2.new(0,60,0,0)
-FrameUI.BackgroundColor3 = Color3.fromRGB(50,50,50)
-FrameUI.BorderSizePixel = 0
-FrameUI.Visible = false
-FrameUI.Parent = Container
+local dragging = false
+local dragStart, startPos
 
-local TextBox = Instance.new("TextBox", FrameUI)
-TextBox.Size = UDim2.new(1,-10,0,40)
-TextBox.Position = UDim2.new(0,5,0,5)
-TextBox.PlaceholderText = "Digite algo para o fake falar..."
-TextBox.ClearTextOnFocus = false
-TextBox.BackgroundColor3 = Color3.fromRGB(70,70,70)
-TextBox.TextColor3 = Color3.fromRGB(255,255,255)
-TextBox.TextScaled = true
-
-local NameBox = Instance.new("TextBox", FrameUI)
-NameBox.Size = UDim2.new(1,-10,0,30)
-NameBox.Position = UDim2.new(0,5,0,50)
-NameBox.PlaceholderText = "Nome do FakePlayer"
-NameBox.Text = FakeName
-NameBox.ClearTextOnFocus = false
-NameBox.BackgroundColor3 = Color3.fromRGB(70,70,70)
-NameBox.TextColor3 = Color3.fromRGB(255,255,255)
-NameBox.TextScaled = true
-
-NameBox.FocusLost:Connect(function(enterPressed)
-    if enterPressed and NameBox.Text ~= "" then
-        FakeName = NameBox.Text
-        createFake(FakeName)
-    end
-end)
-
-local WalkButton = Instance.new("TextButton", FrameUI)
-WalkButton.Size = UDim2.new(0.48,0,0,30)
-WalkButton.Position = UDim2.new(0,5,0,90)
-WalkButton.BackgroundColor3 = Color3.fromRGB(100,100,100)
-WalkButton.TextColor3 = Color3.fromRGB(255,255,255)
-WalkButton.Text = "Walk: ON"
-WalkButton.MouseButton1Click:Connect(function()
-    canWalk = not canWalk
-    WalkButton.Text = canWalk and "Walk: ON" or "Walk: OFF"
-end)
-
-local TeleportButton = Instance.new("TextButton", FrameUI)
-TeleportButton.Size = UDim2.new(0.48,0,0,30)
-TeleportButton.Position = UDim2.new(0.52,0,0,90)
-TeleportButton.BackgroundColor3 = Color3.fromRGB(0,150,200)
-TeleportButton.TextColor3 = Color3.fromRGB(255,255,255)
-TeleportButton.Text = "Teleport"
-TeleportButton.MouseButton1Click:Connect(function()
-    if rootPart and character and character.PrimaryPart then
-        fake:MoveTo(character.PrimaryPart.Position)
-    end
-end)
-
-local ResetButton = Instance.new("TextButton", FrameUI)
-ResetButton.Size = UDim2.new(1,-10,0,30)
-ResetButton.Position = UDim2.new(0,5,0,130)
-ResetButton.BackgroundColor3 = Color3.fromRGB(200,50,50)
-ResetButton.TextColor3 = Color3.fromRGB(255,255,255)
-ResetButton.Text = "Reset Fake Player"
-ResetButton.MouseButton1Click:Connect(function()
-    createFake(FakeName)
-end)
-
-Ball.MouseButton1Click:Connect(function()
-    FrameUI.Visible = not FrameUI.Visible
-end)
-
--- Drag & Drop da bola
-local dragging, dragInput, dragStart, startPos
 Ball.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = Container.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = Container.Position
+	end
 end)
 
-Ball.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
+Ball.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        Container.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                        startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		Container.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
 end)
 
-TextBox.FocusLost:Connect(function(enterPressed)
-    if enterPressed and TextBox.Text ~= "" then
-        fakeSay(TextBox.Text)
-        TextBox.Text = ""
-    end
+--------------------------------------------------
+-- FRAME UI
+--------------------------------------------------
+local FrameUI = Instance.new("Frame", Container)
+FrameUI.Size = UDim2.new(0,300,0,220)
+FrameUI.Position = UDim2.new(0,60,0,0)
+FrameUI.BackgroundColor3 = Color3.fromRGB(50,50,50)
+FrameUI.Visible = false
+Instance.new("UICorner", FrameUI).CornerRadius = UDim.new(0,16)
+
+--------------------------------------------------
+-- ABRIR / FECHAR
+--------------------------------------------------
+local function toggleGui()
+	if not FrameUI.Visible then
+		FrameUI.Visible = true
+		FrameUI.Size = UDim2.new(0,0,0,0)
+		TweenService:Create(
+			FrameUI,
+			TweenInfo.new(0.25, Enum.EasingStyle.Back),
+			{Size = UDim2.new(0,300,0,220)}
+		):Play()
+	else
+		TweenService:Create(
+			FrameUI,
+			TweenInfo.new(0.2),
+			{Size = UDim2.new(0,0,0,0)}
+		):Play()
+		task.delay(0.2, function()
+			FrameUI.Visible = false
+		end)
+	end
+end
+
+Ball.MouseButton1Click:Connect(toggleGui)
+
+--------------------------------------------------
+-- TEXTBOX NICK
+--------------------------------------------------
+local NameBox = Instance.new("TextBox", FrameUI)
+NameBox.Size = UDim2.new(1,-10,0,30)
+NameBox.Position = UDim2.new(0,5,0,5)
+NameBox.PlaceholderText = "Nick do Fake"
+NameBox.Text = FakeName
+Instance.new("UICorner", NameBox).CornerRadius = UDim.new(0,10)
+
+NameBox.FocusLost:Connect(function(enter)
+	if enter and NameBox.Text ~= "" then
+		FakeName = NameBox.Text
+		createFake()
+	end
 end)
+
+--------------------------------------------------
+-- CHAT
+--------------------------------------------------
+local ChatBox = Instance.new("TextBox", FrameUI)
+ChatBox.Size = UDim2.new(1,-10,0,30)
+ChatBox.Position = UDim2.new(0,5,0,40)
+ChatBox.PlaceholderText = "Fake falar..."
+Instance.new("UICorner", ChatBox).CornerRadius = UDim.new(0,10)
+
+ChatBox.FocusLost:Connect(function(enter)
+	if enter and ChatBox.Text ~= "" and fake and fake:FindFirstChild("Head") then
+		ChatService:Chat(fake.Head, ChatBox.Text, Enum.ChatColor.Blue)
+		ChatBox.Text = ""
+	end
+end)
+
+--------------------------------------------------
+-- BOTÕES
+--------------------------------------------------
+local function createButton(text, y)
+	local b = Instance.new("TextButton", FrameUI)
+	b.Size = UDim2.new(1,-10,0,30)
+	b.Position = UDim2.new(0,5,0,y)
+	b.Text = text
+	Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+	return b
+end
+
+local WalkButton = createButton("Walk: ON", 75)
+WalkButton.MouseButton1Click:Connect(function()
+	canWalk = not canWalk
+	WalkButton.Text = canWalk and "Walk: ON" or "Walk: OFF"
+end)
+
+local TeleportButton = createButton("Teleport", 110)
+TeleportButton.MouseButton1Click:Connect(function()
+	if fake then
+		fake:PivotTo(character:GetPivot())
+	end
+end)
+
+local ResetButton = createButton("Reset Fake", 145)
+ResetButton.MouseButton1Click:Connect(createFake)
+
+--------------------------------------------------
+-- START
+--------------------------------------------------
+createFake()
