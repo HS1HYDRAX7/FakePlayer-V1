@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Nexus Hub v1.2.3 ☄️",
-    ConfigurationSaving = { Enabled = true },
+    Name = "Nexus Hub v1.2.7 ☄️",
+    ConfigurationSaving = { Enabled = false },
     KeySystem = true,
     KeySettings = {
         FileName = "HydraKey",
@@ -26,8 +26,7 @@ local performanceEnabled = false
 local cframeSpeed = 1
 local gravity = 196.2
 
-local storedParts = {}
-local storedDecals = {}
+local storedEffects = {}
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
@@ -40,45 +39,58 @@ PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=functi
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
 InGameTab:CreateToggle({
-    Name="Performance Mode",
-    CurrentValue=false,
-    Callback=function(v)
+    Name = "Performance Mode",
+    CurrentValue = false,
+    Callback = function(v)
         performanceEnabled = v
         pcall(function()
             if v then
-                storedParts = {}
-                storedDecals = {}
-
+                storedEffects = {}
                 for _,obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("BasePart") then
-                        storedParts[obj] = {
-                            Material = obj.Material,
-                            Color = obj.Color
-                        }
-                        obj.Material = Enum.Material.Plastic
-                        obj.Color = Color3.fromRGB(128,128,128)
-                    elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                        storedDecals[obj] = obj.Transparency
-                        obj.Transparency = 1
+                    if obj:IsA("ParticleEmitter")
+                    or obj:IsA("Trail")
+                    or obj:IsA("Beam") then
+                        storedEffects[obj] = obj.Enabled
+                        obj.Enabled = false
+                    end
+                end
+                for _,fx in ipairs(Lighting:GetChildren()) do
+                    if fx:IsA("BloomEffect")
+                    or fx:IsA("BlurEffect")
+                    or fx:IsA("SunRaysEffect")
+                    or fx:IsA("ColorCorrectionEffect")
+                    or fx:IsA("DepthOfFieldEffect") then
+                        storedEffects[fx] = fx.Enabled
+                        fx.Enabled = false
                     end
                 end
             else
-                for part,data in pairs(storedParts) do
-                    if part and part.Parent then
-                        part.Material = data.Material
-                        part.Color = data.Color
+                for obj,state in pairs(storedEffects) do
+                    if obj and obj.Parent then
+                        obj.Enabled = state
                     end
                 end
-                for decal,trans in pairs(storedDecals) do
-                    if decal and decal.Parent then
-                        decal.Transparency = trans
-                    end
-                end
-                storedParts = {}
-                storedDecals = {}
+                storedEffects = {}
             end
         end)
     end
+})
+
+local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
+
+CreditsTab:CreateParagraph({
+    Title = "Creators",
+    Content = "Hydra\nNexus Hub Team"
+})
+
+CreditsTab:CreateParagraph({
+    Title = "Changelog",
+    Content = "- Performance Mode (effects only)\n- Stability fixes\n- UI cleanup"
+})
+
+CreditsTab:CreateParagraph({
+    Title = "Version",
+    Content = "v1.2.7"
 })
 
 RunService.Stepped:Connect(function()
