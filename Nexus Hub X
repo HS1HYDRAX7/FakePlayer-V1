@@ -21,7 +21,6 @@ local LocalPlayer = Players.LocalPlayer
 local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
-local performanceEnabled = false
 local infStaminaEnabled = false
 local noCooldownEnabled = false
 
@@ -32,45 +31,15 @@ local storedEffects = {}
 local staminaConn = nil
 local staminaModule = nil
 local cooldownConn = nil
+local cachedCooldowns = {}
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
-PlayerTab:CreateToggle({
-    Name = "Enable Player",
-    CurrentValue = false,
-    Callback = function(v) playerEnabled = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "CFrame Speed",
-    Range = {1,500},
-    Increment = 1,
-    CurrentValue = 1,
-    Callback = function(v) cframeSpeed = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "Gravity",
-    Range = {0,500},
-    Increment = 1,
-    CurrentValue = 196,
-    Callback = function(v)
-        gravity = v
-        if playerEnabled then workspace.Gravity = v end
-    end
-})
-
-PlayerTab:CreateToggle({
-    Name = "Enable Noclip",
-    CurrentValue = false,
-    Callback = function(v) noclipEnabled = v end
-})
-
-PlayerTab:CreateToggle({
-    Name = "Enable InfJump",
-    CurrentValue = false,
-    Callback = function(v) infJumpEnabled = v end
-})
+PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
+PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,500},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
+PlayerTab:CreateSlider({Name="Gravity",Range={0,500},Increment=1,CurrentValue=196,Callback=function(v)gravity=v if playerEnabled then workspace.Gravity=v end end})
+PlayerTab:CreateToggle({Name="Enable Noclip",CurrentValue=false,Callback=function(v)noclipEnabled=v end})
+PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
 
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
 
@@ -79,65 +48,50 @@ ForsakenTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         infStaminaEnabled = v
-
-        if staminaConn then
-            staminaConn:Disconnect()
-            staminaConn = nil
-        end
-
+        if staminaConn then staminaConn:Disconnect() staminaConn=nil end
         if v then
             pcall(function()
                 local rs = cloneref(ReplicatedStorage)
-                local sprintModule = rs:WaitForChild("Systems")
-                    :WaitForChild("Character")
-                    :WaitForChild("Game")
-                    :WaitForChild("Sprinting")
-
-                staminaModule = require(sprintModule)
-
+                local sprint = rs.Systems.Character.Game.Sprinting
+                staminaModule = require(sprint)
                 staminaConn = RunService.Heartbeat:Connect(function()
-                    if infStaminaEnabled and staminaModule then
-                        staminaModule.Stamina = 750
-                    end
+                    staminaModule.Stamina = 750
                 end)
             end)
         end
     end
 })
 
+local function cacheCooldowns()
+    cachedCooldowns = {}
+    local function scan(root)
+        for _,obj in ipairs(root:GetDescendants()) do
+            if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                if string.find(string.lower(obj.Name),"cool") then
+                    table.insert(cachedCooldowns,obj)
+                end
+            end
+        end
+    end
+    scan(ReplicatedStorage)
+    local char = LocalPlayer.Character
+    if char then scan(char) end
+end
+
 ForsakenTab:CreateToggle({
     Name = "No Cooldown",
     CurrentValue = false,
     Callback = function(v)
         noCooldownEnabled = v
-
-        if cooldownConn then
-            cooldownConn:Disconnect()
-            cooldownConn = nil
-        end
-
+        if cooldownConn then cooldownConn:Disconnect() cooldownConn=nil end
         if v then
-            cooldownConn = RunService.Heartbeat:Connect(function()
-                for _,obj in ipairs(game:GetDescendants()) do
-                    if obj:IsA("NumberValue") or obj:IsA("IntValue") then
-                        if string.find(string.lower(obj.Name), "cool") then
-                            obj.Value = 0
-                        end
+            cacheCooldowns()
+            cooldownConn = task.spawn(function()
+                while noCooldownEnabled do
+                    for _,v in ipairs(cachedCooldowns) do
+                        if v and v.Parent then v.Value = 0 end
                     end
-                end
-
-                local char = LocalPlayer.Character
-                if char then
-                    for _,inst in ipairs(char:GetDescendants()) do
-                        local attrs = inst:GetAttributes()
-                        if attrs then
-                            for name,_ in pairs(attrs) do
-                                if string.find(string.lower(name), "cool") then
-                                    inst:SetAttribute(name, 0)
-                                end
-                            end
-                        end
-                    end
+                    task.wait(0.4)
                 end
             end)
         end
@@ -150,69 +104,65 @@ InGameTab:CreateToggle({
     Name = "Performance Mode",
     CurrentValue = false,
     Callback = function(v)
-        performanceEnabled = v
         pcall(function()
             if v then
-                storedEffects = {}
-                for _,obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-                        storedEffects[obj] = obj.Enabled
-                        obj.Enabled = false
+                storedEffects={}
+                for _,o in ipairs(workspace:GetDescendants()) do
+                    if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
+                        storedEffects[o]=o.Enabled
+                        o.Enabled=false
                     end
                 end
                 for _,fx in ipairs(Lighting:GetChildren()) do
-                    if fx:IsA("BloomEffect")
-                    or fx:IsA("BlurEffect")
-                    or fx:IsA("SunRaysEffect")
-                    or fx:IsA("ColorCorrectionEffect")
+                    if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
+                    or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
                     or fx:IsA("DepthOfFieldEffect") then
-                        storedEffects[fx] = fx.Enabled
-                        fx.Enabled = false
+                        storedEffects[fx]=fx.Enabled
+                        fx.Enabled=false
                     end
                 end
             else
-                for obj,state in pairs(storedEffects) do
-                    if obj and obj.Parent then obj.Enabled = state end
+                for o,s in pairs(storedEffects) do
+                    if o and o.Parent then o.Enabled=s end
                 end
-                storedEffects = {}
+                storedEffects={}
             end
         end)
     end
 })
 
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
-
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode\n- Forsaken Inf Stamina\n- Forsaken No Cooldown\n- Stability fixes"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Forsaken Inf Stamina\n- Forsaken No Cooldown (optimized)\n- Stability fixes"})
 
 RunService.Stepped:Connect(function()
     if noclipEnabled then
-        local char = LocalPlayer.Character
-        if char then
-            for _,part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
+        local c=LocalPlayer.Character
+        if c then
+            for _,p in ipairs(c:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide=false end
             end
         end
     end
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if infJumpEnabled and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    if infJumpEnabled then
+        local h=LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-    workspace.Gravity = gravity
-    local moveDir = hum.MoveDirection
-    if moveDir.Magnitude > 0 then
-        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1))
+    local c=LocalPlayer.Character
+    local hrp=c and c:FindFirstChild("HumanoidRootPart")
+    local h=c and c:FindFirstChildOfClass("Humanoid")
+    if not hrp or not h then return end
+    workspace.Gravity=gravity
+    local d=h.MoveDirection
+    if d.Magnitude>0 then
+        hrp.CFrame=hrp.CFrame+(d*(cframeSpeed*0.1))
     end
 end)
