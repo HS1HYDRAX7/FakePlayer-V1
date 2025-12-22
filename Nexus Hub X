@@ -2,7 +2,7 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Nexus Hub v1.2.7 ☄️",
-    ConfigurationSaving = { Enabled = false },
+    ConfigurationSaving = { Enabled = true },
     KeySystem = true,
     KeySettings = {
         FileName = "HydraKey",
@@ -47,9 +47,7 @@ InGameTab:CreateToggle({
             if v then
                 storedEffects = {}
                 for _,obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter")
-                    or obj:IsA("Trail")
-                    or obj:IsA("Beam") then
+                    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
                         storedEffects[obj] = obj.Enabled
                         obj.Enabled = false
                     end
@@ -79,6 +77,11 @@ InGameTab:CreateToggle({
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
 CreditsTab:CreateParagraph({
+    Title = "Version",
+    Content = "v1.2.7"
+})
+
+CreditsTab:CreateParagraph({
     Title = "Creators",
     Content = "Hydra\nNexus Hub Team"
 })
@@ -86,11 +89,6 @@ CreditsTab:CreateParagraph({
 CreditsTab:CreateParagraph({
     Title = "Changelog",
     Content = "- Performance Mode (effects only)\n- Stability fixes\n- UI cleanup"
-})
-
-CreditsTab:CreateParagraph({
-    Title = "Version",
-    Content = "v1.2.7"
 })
 
 RunService.Stepped:Connect(function()
