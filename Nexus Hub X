@@ -27,16 +27,15 @@ local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
-local staminaThread = nil
+local staminaConn = nil
+local staminaModule = nil
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({
     Name = "Enable Player",
     CurrentValue = false,
-    Callback = function(v)
-        playerEnabled = v
-    end
+    Callback = function(v) playerEnabled = v end
 })
 
 PlayerTab:CreateSlider({
@@ -44,9 +43,7 @@ PlayerTab:CreateSlider({
     Range = {1,500},
     Increment = 1,
     CurrentValue = 1,
-    Callback = function(v)
-        cframeSpeed = v
-    end
+    Callback = function(v) cframeSpeed = v end
 })
 
 PlayerTab:CreateSlider({
@@ -56,26 +53,20 @@ PlayerTab:CreateSlider({
     CurrentValue = 196,
     Callback = function(v)
         gravity = v
-        if playerEnabled then
-            workspace.Gravity = v
-        end
+        if playerEnabled then workspace.Gravity = v end
     end
 })
 
 PlayerTab:CreateToggle({
     Name = "Enable Noclip",
     CurrentValue = false,
-    Callback = function(v)
-        noclipEnabled = v
-    end
+    Callback = function(v) noclipEnabled = v end
 })
 
 PlayerTab:CreateToggle({
     Name = "Enable InfJump",
     CurrentValue = false,
-    Callback = function(v)
-        infJumpEnabled = v
-    end
+    Callback = function(v) infJumpEnabled = v end
 })
 
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
@@ -87,20 +78,31 @@ ForsakenTab:CreateToggle({
         infStaminaEnabled = v
 
         if v then
-            staminaThread = task.spawn(function()
+            pcall(function()
                 local rs = cloneref(game:GetService("ReplicatedStorage"))
-                local sprint = rs.Systems.Character.Game.Sprinting
-                local m = require(sprint)
-                local FROZEN_STAMINA = 750
+                local sprintModule = rs:WaitForChild("Systems")
+                    :WaitForChild("Character")
+                    :WaitForChild("Game")
+                    :WaitForChild("Sprinting")
 
-                while infStaminaEnabled do
-                    m.Stamina = FROZEN_STAMINA
-                    task.wait()
+                staminaModule = require(sprintModule)
+
+                if staminaConn then
+                    staminaConn:Disconnect()
+                    staminaConn = nil
                 end
+
+                staminaConn = RunService.Heartbeat:Connect(function()
+                    if infStaminaEnabled and staminaModule then
+                        staminaModule.Stamina = 750
+                    end
+                end)
             end)
         else
-            infStaminaEnabled = false
-            staminaThread = nil
+            if staminaConn then
+                staminaConn:Disconnect()
+                staminaConn = nil
+            end
         end
     end
 })
@@ -116,9 +118,7 @@ InGameTab:CreateToggle({
             if v then
                 storedEffects = {}
                 for _,obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter")
-                    or obj:IsA("Trail")
-                    or obj:IsA("Beam") then
+                    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
                         storedEffects[obj] = obj.Enabled
                         obj.Enabled = false
                     end
@@ -167,23 +167,17 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-
     if not hrp or not hum then return end
-
     workspace.Gravity = gravity
-
     local moveDir = hum.MoveDirection
     if moveDir.Magnitude > 0 then
         hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1))
