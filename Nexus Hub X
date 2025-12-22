@@ -32,7 +32,6 @@ local storedEffects = {}
 local staminaConn = nil
 local staminaModule = nil
 local cooldownConn = nil
-local cooldownModules = {}
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
@@ -81,6 +80,11 @@ ForsakenTab:CreateToggle({
     Callback = function(v)
         infStaminaEnabled = v
 
+        if staminaConn then
+            staminaConn:Disconnect()
+            staminaConn = nil
+        end
+
         if v then
             pcall(function()
                 local rs = cloneref(ReplicatedStorage)
@@ -91,16 +95,12 @@ ForsakenTab:CreateToggle({
 
                 staminaModule = require(sprintModule)
 
-                if staminaConn then staminaConn:Disconnect() end
-
                 staminaConn = RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
                         staminaModule.Stamina = 750
                     end
                 end)
             end)
-        else
-            if staminaConn then staminaConn:Disconnect() staminaConn = nil end
         end
     end
 })
@@ -111,46 +111,35 @@ ForsakenTab:CreateToggle({
     Callback = function(v)
         noCooldownEnabled = v
 
+        if cooldownConn then
+            cooldownConn:Disconnect()
+            cooldownConn = nil
+        end
+
         if v then
-            pcall(function()
-                cooldownModules = {}
-
-                local rs = cloneref(ReplicatedStorage)
-                local gameFolder = rs:WaitForChild("Systems")
-                    :WaitForChild("Character")
-                    :WaitForChild("Game")
-
-                for _,m in ipairs(gameFolder:GetDescendants()) do
-                    if m:IsA("ModuleScript") then
-                        local ok, mod = pcall(require, m)
-                        if ok and type(mod) == "table" then
-                            if rawget(mod, "Cooldown") or rawget(mod, "Cooldowns") then
-                                table.insert(cooldownModules, mod)
-                            end
+            cooldownConn = RunService.Heartbeat:Connect(function()
+                for _,obj in ipairs(game:GetDescendants()) do
+                    if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+                        if string.find(string.lower(obj.Name), "cool") then
+                            obj.Value = 0
                         end
                     end
                 end
 
-                if cooldownConn then cooldownConn:Disconnect() end
-
-                cooldownConn = RunService.Heartbeat:Connect(function()
-                    if not noCooldownEnabled then return end
-                    for _,mod in ipairs(cooldownModules) do
-                        if mod.Cooldown then
-                            for k in pairs(mod.Cooldown) do
-                                mod.Cooldown[k] = 0
-                            end
-                        end
-                        if mod.Cooldowns then
-                            for k in pairs(mod.Cooldowns) do
-                                mod.Cooldowns[k] = 0
+                local char = LocalPlayer.Character
+                if char then
+                    for _,inst in ipairs(char:GetDescendants()) do
+                        local attrs = inst:GetAttributes()
+                        if attrs then
+                            for name,_ in pairs(attrs) do
+                                if string.find(string.lower(name), "cool") then
+                                    inst:SetAttribute(name, 0)
+                                end
                             end
                         end
                     end
-                end)
+                end
             end)
-        else
-            if cooldownConn then cooldownConn:Disconnect() cooldownConn = nil end
         end
     end
 })
