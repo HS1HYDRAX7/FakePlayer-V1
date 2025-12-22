@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Nexus Hub v1.2 ☄️",
+    Name = "Nexus Hub v1.2.3 ☄️",
     ConfigurationSaving = { Enabled = true },
     KeySystem = true,
     KeySettings = {
@@ -21,9 +21,13 @@ local LocalPlayer = Players.LocalPlayer
 local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
+local performanceEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
+
+local storedParts = {}
+local storedDecals = {}
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
@@ -35,36 +39,43 @@ PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=functi
 
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
-local originalLighting = {
-    GlobalShadows = Lighting.GlobalShadows,
-    FogEnd = Lighting.FogEnd,
-    Brightness = Lighting.Brightness
-}
-
 InGameTab:CreateToggle({
-    Name = "Performance mode",
-    CurrentValue = false,
-    Callback = function(v)
+    Name="Performance Mode",
+    CurrentValue=false,
+    Callback=function(v)
+        performanceEnabled = v
         pcall(function()
             if v then
-                Lighting.GlobalShadows = false
-                Lighting.FogEnd = 100
-                Lighting.Brightness = 1
+                storedParts = {}
+                storedDecals = {}
 
                 for _,obj in ipairs(workspace:GetDescendants()) do
                     if obj:IsA("BasePart") then
+                        storedParts[obj] = {
+                            Material = obj.Material,
+                            Color = obj.Color
+                        }
                         obj.Material = Enum.Material.Plastic
-                        obj.Reflectance = 0
+                        obj.Color = Color3.fromRGB(128,128,128)
                     elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                        obj.Transparency = 0.5
-                    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
-                        obj.Enabled = false
+                        storedDecals[obj] = obj.Transparency
+                        obj.Transparency = 1
                     end
                 end
             else
-                Lighting.GlobalShadows = originalLighting.GlobalShadows
-                Lighting.FogEnd = originalLighting.FogEnd
-                Lighting.Brightness = originalLighting.Brightness
+                for part,data in pairs(storedParts) do
+                    if part and part.Parent then
+                        part.Material = data.Material
+                        part.Color = data.Color
+                    end
+                end
+                for decal,trans in pairs(storedDecals) do
+                    if decal and decal.Parent then
+                        decal.Transparency = trans
+                    end
+                end
+                storedParts = {}
+                storedDecals = {}
             end
         end)
     end
@@ -99,6 +110,6 @@ RunService.Heartbeat:Connect(function()
     workspace.Gravity = gravity
     local moveDir = hum.MoveDirection
     if moveDir.Magnitude > 0 then
-        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1 + math.random() * 0.05))
+        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1))
     end
 end)
