@@ -2,7 +2,6 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Nexus Hub v1.2.7 ☄️",
-    ConfigurationSaving = { Enabled = true },
     KeySystem = true,
     KeySettings = {
         FileName = "HydraKey",
@@ -22,19 +21,89 @@ local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
 local performanceEnabled = false
+local infStaminaEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
+local staminaThread = nil
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
-PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
-PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,500},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
-PlayerTab:CreateSlider({Name="Gravity",Range={0,500},Increment=1,CurrentValue=196,Callback=function(v)gravity=v if playerEnabled then workspace.Gravity=v end end})
-PlayerTab:CreateToggle({Name="Enable Noclip",CurrentValue=false,Callback=function(v)noclipEnabled=v end})
-PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
+PlayerTab:CreateToggle({
+    Name = "Enable Player",
+    CurrentValue = false,
+    Callback = function(v)
+        playerEnabled = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "CFrame Speed",
+    Range = {1,500},
+    Increment = 1,
+    CurrentValue = 1,
+    Callback = function(v)
+        cframeSpeed = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Gravity",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 196,
+    Callback = function(v)
+        gravity = v
+        if playerEnabled then
+            workspace.Gravity = v
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Enable Noclip",
+    CurrentValue = false,
+    Callback = function(v)
+        noclipEnabled = v
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Enable InfJump",
+    CurrentValue = false,
+    Callback = function(v)
+        infJumpEnabled = v
+    end
+})
+
+local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
+
+ForsakenTab:CreateToggle({
+    Name = "Inf Stamina",
+    CurrentValue = false,
+    Callback = function(v)
+        infStaminaEnabled = v
+
+        if v then
+            staminaThread = task.spawn(function()
+                local rs = cloneref(game:GetService("ReplicatedStorage"))
+                local sprint = rs.Systems.Character.Game.Sprinting
+                local m = require(sprint)
+                local FROZEN_STAMINA = 750
+
+                while infStaminaEnabled do
+                    m.Stamina = FROZEN_STAMINA
+                    task.wait()
+                end
+            end)
+        else
+            infStaminaEnabled = false
+            staminaThread = nil
+        end
+    end
+})
 
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
@@ -80,7 +149,7 @@ local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode (effects)\n- Stability fixes\n- Cleanup"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode\n- Forsaken Inf Stamina\n- Stability fixes"})
 
 RunService.Stepped:Connect(function()
     if noclipEnabled then
@@ -98,17 +167,23 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
+
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
+
     if not hrp or not hum then return end
+
     workspace.Gravity = gravity
+
     local moveDir = hum.MoveDirection
     if moveDir.Magnitude > 0 then
         hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1))
