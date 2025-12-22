@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Nexus Hub v1.0 ☄️",
+    Name = "Nexus Hub v1.2 ☄️",
     ConfigurationSaving = { Enabled = true },
     KeySystem = true,
     KeySettings = {
@@ -21,7 +21,6 @@ local LocalPlayer = Players.LocalPlayer
 local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
-local fpsBoostEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
@@ -36,52 +35,48 @@ PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=functi
 
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
-local original = {
+local originalLighting = {
     GlobalShadows = Lighting.GlobalShadows,
     FogEnd = Lighting.FogEnd,
-    Brightness = Lighting.Brightness,
-    Streaming = workspace.StreamingEnabled
+    Brightness = Lighting.Brightness
 }
 
 InGameTab:CreateToggle({
-    Name="FPS Boost",
-    CurrentValue=false,
-    Callback=function(v)
-        fpsBoostEnabled=v
-        if v then
-            pcall(function()
-                settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-            end)
-            Lighting.GlobalShadows=false
-            Lighting.FogEnd=100
-            Lighting.Brightness=1
-            workspace.StreamingEnabled=true
-            workspace.StreamingTargetRadius=64
-            workspace.StreamingMinRadius=32
-            for _,obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.Material=Enum.Material.Plastic
-                    obj.Reflectance=0
-                elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                    obj.Transparency=0.5
+    Name = "Performance mode",
+    CurrentValue = false,
+    Callback = function(v)
+        pcall(function()
+            if v then
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 100
+                Lighting.Brightness = 1
+
+                for _,obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") then
+                        obj.Material = Enum.Material.Plastic
+                        obj.Reflectance = 0
+                    elseif obj:IsA("Decal") or obj:IsA("Texture") then
+                        obj.Transparency = 0.5
+                    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
+                        obj.Enabled = false
+                    end
                 end
+            else
+                Lighting.GlobalShadows = originalLighting.GlobalShadows
+                Lighting.FogEnd = originalLighting.FogEnd
+                Lighting.Brightness = originalLighting.Brightness
             end
-        else
-            Lighting.GlobalShadows=original.GlobalShadows
-            Lighting.FogEnd=original.FogEnd
-            Lighting.Brightness=original.Brightness
-            workspace.StreamingEnabled=original.Streaming
-        end
+        end)
     end
 })
 
 RunService.Stepped:Connect(function()
     if noclipEnabled then
-        local char=LocalPlayer.Character
+        local char = LocalPlayer.Character
         if char then
-            for _,part in pairs(char:GetDescendants()) do
+            for _,part in ipairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
-                    part.CanCollide=false
+                    part.CanCollide = false
                 end
             end
         end
@@ -90,20 +85,20 @@ end)
 
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
-        local hum=LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-    local char=LocalPlayer.Character
-    local hrp=char and char:FindFirstChild("HumanoidRootPart")
-    local hum=char and char:FindFirstChildOfClass("Humanoid")
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if not hrp or not hum then return end
-    workspace.Gravity=gravity
-    local moveDir=hum.MoveDirection
-    if moveDir.Magnitude>0 then
-        hrp.CFrame=hrp.CFrame+(moveDir*(cframeSpeed*0.1+math.random()*0.05))
+    workspace.Gravity = gravity
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0 then
+        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.1 + math.random() * 0.05))
     end
 end)
