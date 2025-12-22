@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local playerEnabled = false
@@ -22,6 +23,7 @@ local noclipEnabled = false
 local infJumpEnabled = false
 local performanceEnabled = false
 local infStaminaEnabled = false
+local noCooldownEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
@@ -29,6 +31,8 @@ local gravity = 196.2
 local storedEffects = {}
 local staminaConn = nil
 local staminaModule = nil
+local cooldownConn = nil
+local cooldownModules = {}
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
@@ -79,7 +83,7 @@ ForsakenTab:CreateToggle({
 
         if v then
             pcall(function()
-                local rs = cloneref(game:GetService("ReplicatedStorage"))
+                local rs = cloneref(ReplicatedStorage)
                 local sprintModule = rs:WaitForChild("Systems")
                     :WaitForChild("Character")
                     :WaitForChild("Game")
@@ -87,10 +91,7 @@ ForsakenTab:CreateToggle({
 
                 staminaModule = require(sprintModule)
 
-                if staminaConn then
-                    staminaConn:Disconnect()
-                    staminaConn = nil
-                end
+                if staminaConn then staminaConn:Disconnect() end
 
                 staminaConn = RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
@@ -99,10 +100,57 @@ ForsakenTab:CreateToggle({
                 end)
             end)
         else
-            if staminaConn then
-                staminaConn:Disconnect()
-                staminaConn = nil
-            end
+            if staminaConn then staminaConn:Disconnect() staminaConn = nil end
+        end
+    end
+})
+
+ForsakenTab:CreateToggle({
+    Name = "No Cooldown",
+    CurrentValue = false,
+    Callback = function(v)
+        noCooldownEnabled = v
+
+        if v then
+            pcall(function()
+                cooldownModules = {}
+
+                local rs = cloneref(ReplicatedStorage)
+                local gameFolder = rs:WaitForChild("Systems")
+                    :WaitForChild("Character")
+                    :WaitForChild("Game")
+
+                for _,m in ipairs(gameFolder:GetDescendants()) do
+                    if m:IsA("ModuleScript") then
+                        local ok, mod = pcall(require, m)
+                        if ok and type(mod) == "table" then
+                            if rawget(mod, "Cooldown") or rawget(mod, "Cooldowns") then
+                                table.insert(cooldownModules, mod)
+                            end
+                        end
+                    end
+                end
+
+                if cooldownConn then cooldownConn:Disconnect() end
+
+                cooldownConn = RunService.Heartbeat:Connect(function()
+                    if not noCooldownEnabled then return end
+                    for _,mod in ipairs(cooldownModules) do
+                        if mod.Cooldown then
+                            for k in pairs(mod.Cooldown) do
+                                mod.Cooldown[k] = 0
+                            end
+                        end
+                        if mod.Cooldowns then
+                            for k in pairs(mod.Cooldowns) do
+                                mod.Cooldowns[k] = 0
+                            end
+                        end
+                    end
+                end)
+            end)
+        else
+            if cooldownConn then cooldownConn:Disconnect() cooldownConn = nil end
         end
     end
 })
@@ -135,9 +183,7 @@ InGameTab:CreateToggle({
                 end
             else
                 for obj,state in pairs(storedEffects) do
-                    if obj and obj.Parent then
-                        obj.Enabled = state
-                    end
+                    if obj and obj.Parent then obj.Enabled = state end
                 end
                 storedEffects = {}
             end
@@ -149,16 +195,14 @@ local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode\n- Forsaken Inf Stamina\n- Stability fixes"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode\n- Forsaken Inf Stamina\n- Forsaken No Cooldown\n- Stability fixes"})
 
 RunService.Stepped:Connect(function()
     if noclipEnabled then
         local char = LocalPlayer.Character
         if char then
             for _,part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
+                if part:IsA("BasePart") then part.CanCollide = false end
             end
         end
     end
