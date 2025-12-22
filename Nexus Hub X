@@ -7,7 +7,7 @@ local Window = Rayfield:CreateWindow({
     KeySettings = {
         FileName = "HydraKey",
         SaveKey = false,
-        Key = "MYBF"
+        Key = "NHX"
     },
     Theme = "Amethyst"
 })
@@ -22,11 +22,28 @@ local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
 local performanceEnabled = false
+local shadersEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
+local lightingSnapshot = {}
+
+local function snapshotLighting()
+    lightingSnapshot = {}
+    for _,v in ipairs(Lighting:GetChildren()) do
+        lightingSnapshot[v] = true
+    end
+end
+
+local function restoreLighting()
+    for _,v in ipairs(Lighting:GetChildren()) do
+        if not lightingSnapshot[v] then
+            pcall(function() v:Destroy() end)
+        end
+    end
+end
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
@@ -74,22 +91,27 @@ InGameTab:CreateToggle({
     end
 })
 
+InGameTab:CreateToggle({
+    Name = "Shaders",
+    CurrentValue = false,
+    Callback = function(v)
+        shadersEnabled = v
+        pcall(function()
+            if v then
+                snapshotLighting()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/randomstring0/pshade-ultimate/refs/heads/main/src/cd.lua"))()
+            else
+                restoreLighting()
+            end
+        end)
+    end
+})
+
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
-CreditsTab:CreateParagraph({
-    Title = "Version",
-    Content = "v1.2.7"
-})
-
-CreditsTab:CreateParagraph({
-    Title = "Creators",
-    Content = "Hydra\nNexus Hub Team"
-})
-
-CreditsTab:CreateParagraph({
-    Title = "Changelog",
-    Content = "- Performance Mode (effects only)\n- Stability fixes\n- UI cleanup"
-})
+CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
+CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Performance Mode (effects)\n- Shaders toggle\n- Stability fixes"})
 
 RunService.Stepped:Connect(function()
     if noclipEnabled then
