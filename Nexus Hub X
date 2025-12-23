@@ -17,7 +17,7 @@ pcall(function()
 
     local frame = Instance.new("Frame")
     frame.Size = isMobile and UDim2.new(0,180,0,52) or UDim2.new(0,150,0,43)
-    frame.Position = UDim2.new(0.5,0,0,inset.Y + (isMobile and 8 or 6))
+    frame.Position = UDim2.new(0.8,0,0,inset.Y + (isMobile and 8 or 6))
     frame.AnchorPoint = Vector2.new(0.5,0)
     frame.BackgroundTransparency = 0.1
     frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
