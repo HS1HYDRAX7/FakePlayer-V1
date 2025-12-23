@@ -1,23 +1,17 @@
 local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
 
-local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v1.3.9",
-	Subtitle = "Nexus Hub",
-	KeySystem = true,
-	KeySettings = {
-		Title = "Nexus Hub Key",
-		Subtitle = "Enter the key",
-		Note = "",
-		SaveKey = false,
-		Key = {"NHX"}
-	}
-})
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
+
+local Window = Luna:CreateWindow({
+	Name = "Nexus Hub v1.3.9",
+	Subtitle = "Nexus Hub",
+	Theme = "Amethyst"
+})
 
 local playerEnabled = false
 local noclipEnabled = false
@@ -29,9 +23,10 @@ local gravity = 196.2
 
 local noclipConn
 local staminaConn
-local originalCollisions = {}
+local storedCollisions = {}
 local storedEffects = {}
 
+-- PLAYER TAB
 local PlayerTab = Window:CreateTab({
 	Name = "Player",
 	Icon = "account_circle"
@@ -54,16 +49,6 @@ PlayerTab:CreateSlider({
 	end
 })
 
-PlayerTab:CreateSlider({
-	Name = "Gravity",
-	Min = 0,
-	Max = 500,
-	Default = 196,
-	Callback = function(v)
-		gravity = v
-	end
-})
-
 PlayerTab:CreateToggle({
 	Name = "Noclip",
 	Callback = function(v)
@@ -74,27 +59,28 @@ PlayerTab:CreateToggle({
 		if not char then return end
 
 		if v then
-			originalCollisions = {}
+			storedCollisions = {}
 			for _,p in ipairs(char:GetDescendants()) do
 				if p:IsA("BasePart") then
-					originalCollisions[p] = p.CanCollide
+					storedCollisions[p] = p.CanCollide
 					p.CanCollide = false
 				end
 			end
+
 			noclipConn = RunService.Stepped:Connect(function()
-				for _,p in ipairs(char:GetDescendants()) do
-					if p:IsA("BasePart") then
-						p.CanCollide = false
+				for part in pairs(storedCollisions) do
+					if part and part.Parent then
+						part.CanCollide = false
 					end
 				end
 			end)
 		else
-			for p,state in pairs(originalCollisions) do
-				if p and p.Parent then
-					p.CanCollide = state
+			for part,state in pairs(storedCollisions) do
+				if part and part.Parent then
+					part.CanCollide = state
 				end
 			end
-			originalCollisions = {}
+			storedCollisions = {}
 		end
 	end
 })
@@ -106,6 +92,7 @@ PlayerTab:CreateToggle({
 	end
 })
 
+-- FORSAKEN TAB
 local ForsakenTab = Window:CreateTab({
 	Name = "Forsaken",
 	Icon = "extension"
@@ -131,6 +118,7 @@ ForsakenTab:CreateToggle({
 	end
 })
 
+-- IN-GAME TAB
 local InGameTab = Window:CreateTab({
 	Name = "In-game",
 	Icon = "settings_brightness"
@@ -141,10 +129,10 @@ InGameTab:CreateToggle({
 	Callback = function(v)
 		if v then
 			storedEffects = {}
-			for _,o in ipairs(workspace:GetDescendants()) do
-				if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
-					storedEffects[o] = o.Enabled
-					o.Enabled = false
+			for _,obj in ipairs(workspace:GetDescendants()) do
+				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+					storedEffects[obj] = obj.Enabled
+					obj.Enabled = false
 				end
 			end
 			for _,fx in ipairs(Lighting:GetChildren()) do
@@ -154,9 +142,9 @@ InGameTab:CreateToggle({
 				end
 			end
 		else
-			for o,s in pairs(storedEffects) do
-				if o and o.Parent then
-					o.Enabled = s
+			for obj,state in pairs(storedEffects) do
+				if obj and obj.Parent then
+					obj.Enabled = state
 				end
 			end
 			storedEffects = {}
@@ -164,16 +152,17 @@ InGameTab:CreateToggle({
 	end
 })
 
+-- INFORMATION TAB
 local InfoTab = Window:CreateTab({
 	Name = "Information",
 	Icon = "info"
 })
 
-local clockLabel = InfoTab:CreateLabel("00:00:00")
+local clock = InfoTab:CreateLabel("00:00:00")
 
 task.spawn(function()
 	while task.wait(1) do
-		clockLabel:SetText(os.date("%H:%M:%S"))
+		clock:SetText(os.date("%H:%M:%S"))
 	end
 end)
 
@@ -182,6 +171,7 @@ InfoTab:CreateLabel("Hydra / Nexus Hub Team")
 InfoTab:CreateLabel("Changelog")
 InfoTab:CreateLabel("v1.3.9")
 
+-- MOVEMENT + JUMP
 UserInputService.JumpRequest:Connect(function()
 	if infJumpEnabled and LocalPlayer.Character then
 		local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -193,9 +183,11 @@ end)
 
 RunService.Heartbeat:Connect(function()
 	if not playerEnabled then return end
+
 	local char = LocalPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
+
 	if not hrp or not hum then return end
 
 	workspace.Gravity = gravity
