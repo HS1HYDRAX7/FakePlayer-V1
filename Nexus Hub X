@@ -22,25 +22,81 @@ local noclipEnabled = false
 local infJumpEnabled = false
 local performanceEnabled = false
 local infStaminaEnabled = false
-local hitboxEnabled = false
-local espEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
-local staminaConn
-local staminaModule
-local hitboxCache = {}
-local espCache = {}
+local staminaConn = nil
+local staminaModule = nil
+local noclipConn = nil
 
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
-PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
-PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,500},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
-PlayerTab:CreateSlider({Name="Gravity",Range={0,500},Increment=1,CurrentValue=196,Callback=function(v)gravity=v if playerEnabled then workspace.Gravity=v end end})
-PlayerTab:CreateToggle({Name="Enable Noclip",CurrentValue=false,Callback=function(v)noclipEnabled=v end})
-PlayerTab:CreateToggle({Name="Enable InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
+PlayerTab:CreateToggle({
+    Name = "Enable Player",
+    CurrentValue = false,
+    Callback = function(v)
+        playerEnabled = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "CFrame Speed",
+    Range = {1,170},
+    Increment = 1,
+    CurrentValue = 1,
+    Callback = function(v)
+        cframeSpeed = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Gravity",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 196,
+    Callback = function(v)
+        gravity = v
+        if playerEnabled then
+            workspace.Gravity = v
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Noclip (Bypass)",
+    CurrentValue = false,
+    Callback = function(v)
+        noclipEnabled = v
+
+        if noclipConn then
+            noclipConn:Disconnect()
+            noclipConn = nil
+        end
+
+        if v then
+            noclipConn = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                if char then
+                    for _,part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "InfJump",
+    CurrentValue = false,
+    Callback = function(v)
+        infJumpEnabled = v
+    end
+})
 
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
 
@@ -49,89 +105,28 @@ ForsakenTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         infStaminaEnabled = v
+
+        if staminaConn then
+            staminaConn:Disconnect()
+            staminaConn = nil
+        end
+
         if v then
             pcall(function()
                 local rs = cloneref(game:GetService("ReplicatedStorage"))
-                local sprintModule = rs.Systems.Character.Game.Sprinting
+                local sprintModule = rs:WaitForChild("Systems")
+                    :WaitForChild("Character")
+                    :WaitForChild("Game")
+                    :WaitForChild("Sprinting")
+
                 staminaModule = require(sprintModule)
+
                 staminaConn = RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
                         staminaModule.Stamina = 750
                     end
                 end)
             end)
-        else
-            if staminaConn then staminaConn:Disconnect() staminaConn=nil end
-        end
-    end
-})
-
-ForsakenTab:CreateToggle({
-    Name = "Big Hitbox (4x)",
-    CurrentValue = false,
-    Callback = function(v)
-        hitboxEnabled = v
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = plr.Character.HumanoidRootPart
-                if v then
-                    if not hitboxCache[plr] then
-                        hitboxCache[plr] = hrp.Size
-                        hrp.Size = hrp.Size * 4
-                        hrp.Transparency = 0.5
-                        hrp.CanCollide = false
-                    end
-                else
-                    if hitboxCache[plr] then
-                        hrp.Size = hitboxCache[plr]
-                        hrp.Transparency = 1
-                        hitboxCache[plr] = nil
-                    end
-                end
-            end
-        end
-    end
-})
-
-ForsakenTab:CreateToggle({
-    Name = "ESP",
-    CurrentValue = false,
-    Callback = function(v)
-        espEnabled = v
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                if v then
-                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and not espCache[plr] then
-                        local char = plr.Character
-                        local highlight = Instance.new("Highlight")
-                        highlight.FillTransparency = 0.5
-                        highlight.OutlineTransparency = 0
-                        highlight.Parent = char
-                        local billboard = Instance.new("BillboardGui")
-                        billboard.Size = UDim2.new(0,200,0,30)
-                        billboard.StudsOffset = Vector3.new(0,-3,0)
-                        billboard.AlwaysOnTop = true
-                        local label = Instance.new("TextLabel")
-                        label.Size = UDim2.new(1,0,1,0)
-                        label.BackgroundTransparency = 1
-                        label.TextScaled = true
-                        label.Font = Enum.Font.Gotham
-                        label.TextSize = 12
-                        label.Text = plr.Name.." | "..(plr.Team and plr.Team.Name or "No Team")
-                        label.TextColor3 = Color3.new(1,1,1)
-                        label.Parent = billboard
-                        billboard.Parent = char.HumanoidRootPart
-                        espCache[plr] = {highlight, billboard}
-                    end
-                else
-                    if espCache[plr] then
-                        for _,obj in ipairs(espCache[plr]) do
-                            pcall(function() obj:Destroy() end)
-                        end
-                        espCache[plr] = nil
-                    end
-                end
-            end
         end
     end
 })
@@ -143,28 +138,36 @@ InGameTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         performanceEnabled = v
-        if v then
-            storedEffects = {}
-            for _,obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-                    storedEffects[obj] = obj.Enabled
-                    obj.Enabled = false
+        pcall(function()
+            if v then
+                storedEffects = {}
+                for _,obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("ParticleEmitter")
+                    or obj:IsA("Trail")
+                    or obj:IsA("Beam") then
+                        storedEffects[obj] = obj.Enabled
+                        obj.Enabled = false
+                    end
                 end
-            end
-            for _,fx in ipairs(Lighting:GetChildren()) do
-                if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
-                or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
-                or fx:IsA("DepthOfFieldEffect") then
-                    storedEffects[fx] = fx.Enabled
-                    fx.Enabled = false
+                for _,fx in ipairs(Lighting:GetChildren()) do
+                    if fx:IsA("BloomEffect")
+                    or fx:IsA("BlurEffect")
+                    or fx:IsA("SunRaysEffect")
+                    or fx:IsA("ColorCorrectionEffect")
+                    or fx:IsA("DepthOfFieldEffect") then
+                        storedEffects[fx] = fx.Enabled
+                        fx.Enabled = false
+                    end
                 end
+            else
+                for obj,state in pairs(storedEffects) do
+                    if obj and obj.Parent then
+                        obj.Enabled = state
+                    end
+                end
+                storedEffects = {}
             end
-        else
-            for obj,state in pairs(storedEffects) do
-                if obj and obj.Parent then obj.Enabled = state end
-            end
-            storedEffects = {}
-        end
+        end)
     end
 })
 
@@ -172,34 +175,30 @@ local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Forsaken ESP\n- Big Hitbox\n- Stability fixes"})
-
-RunService.Stepped:Connect(function()
-    if noclipEnabled then
-        local char = LocalPlayer.Character
-        if char then
-            for _,p in ipairs(char:GetDescendants()) do
-                if p:IsA("BasePart") then p.CanCollide=false end
-            end
-        end
-    end
-end)
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Noclip bypass\n- CFrame speed limit adjusted\n- Stability improvements"})
 
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
+
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
+
     if not hrp or not hum then return end
+
     workspace.Gravity = gravity
-    if hum.MoveDirection.Magnitude > 0 then
-        hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (cframeSpeed * 0.1))
+
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0 then
+        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.08))
     end
 end)
