@@ -1,4 +1,4 @@
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,9 +7,13 @@ local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
-local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v1.3.9",
-	Subtitle = "Nexus Hub",
+local Window = Rayfield:CreateWindow({
+	Name = "Nexus Hub v1.3.9 ☄️",
+	LoadingTitle = "Nexus Hub",
+	LoadingSubtitle = "",
+	ConfigurationSaving = {
+		Enabled = false
+	},
 	Theme = "Amethyst"
 })
 
@@ -27,13 +31,11 @@ local storedCollisions = {}
 local storedEffects = {}
 
 -- PLAYER TAB
-local PlayerTab = Window:CreateTab({
-	Name = "Player",
-	Icon = "account_circle"
-})
+local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({
 	Name = "Enable Player",
+	CurrentValue = false,
 	Callback = function(v)
 		playerEnabled = v
 	end
@@ -41,19 +43,34 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
 	Name = "CFrame Speed",
-	Min = 1,
-	Max = 170,
-	Default = 1,
+	Range = {1,170},
+	Increment = 1,
+	CurrentValue = 1,
 	Callback = function(v)
 		cframeSpeed = v
 	end
 })
 
+PlayerTab:CreateSlider({
+	Name = "Gravity",
+	Range = {0,300},
+	Increment = 1,
+	CurrentValue = 196,
+	Callback = function(v)
+		gravity = v
+	end
+})
+
 PlayerTab:CreateToggle({
 	Name = "Noclip",
+	CurrentValue = false,
 	Callback = function(v)
 		noclipEnabled = v
-		if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+
+		if noclipConn then
+			noclipConn:Disconnect()
+			noclipConn = nil
+		end
 
 		local char = LocalPlayer.Character
 		if not char then return end
@@ -68,6 +85,7 @@ PlayerTab:CreateToggle({
 			end
 
 			noclipConn = RunService.Stepped:Connect(function()
+				if not noclipEnabled then return end
 				for part in pairs(storedCollisions) do
 					if part and part.Parent then
 						part.CanCollide = false
@@ -87,22 +105,25 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateToggle({
 	Name = "Inf Jump",
+	CurrentValue = false,
 	Callback = function(v)
 		infJumpEnabled = v
 	end
 })
 
 -- FORSAKEN TAB
-local ForsakenTab = Window:CreateTab({
-	Name = "Forsaken",
-	Icon = "extension"
-})
+local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
 
 ForsakenTab:CreateToggle({
 	Name = "Inf Stamina",
+	CurrentValue = false,
 	Callback = function(v)
 		infStaminaEnabled = v
-		if staminaConn then staminaConn:Disconnect() staminaConn = nil end
+
+		if staminaConn then
+			staminaConn:Disconnect()
+			staminaConn = nil
+		end
 
 		if v then
 			local rs = cloneref(game:GetService("ReplicatedStorage"))
@@ -119,13 +140,11 @@ ForsakenTab:CreateToggle({
 })
 
 -- IN-GAME TAB
-local InGameTab = Window:CreateTab({
-	Name = "In-game",
-	Icon = "settings_brightness"
-})
+local InGameTab = Window:CreateTab("In-game", 4483362458)
 
 InGameTab:CreateToggle({
 	Name = "Performance Mode",
+	CurrentValue = false,
 	Callback = function(v)
 		if v then
 			storedEffects = {}
@@ -153,16 +172,13 @@ InGameTab:CreateToggle({
 })
 
 -- INFORMATION TAB
-local InfoTab = Window:CreateTab({
-	Name = "Information",
-	Icon = "info"
-})
+local InfoTab = Window:CreateTab("Information 💾", 4483362458)
 
-local clock = InfoTab:CreateLabel("00:00:00")
+local clockLabel = InfoTab:CreateLabel("00:00:00")
 
 task.spawn(function()
 	while task.wait(1) do
-		clock:SetText(os.date("%H:%M:%S"))
+		clockLabel:SetText(os.date("%H:%M:%S"))
 	end
 end)
 
@@ -171,17 +187,19 @@ InfoTab:CreateLabel("Hydra / Nexus Hub Team")
 InfoTab:CreateLabel("Changelog")
 InfoTab:CreateLabel("v1.3.9")
 
--- MOVEMENT + JUMP
+-- INF JUMP
 UserInputService.JumpRequest:Connect(function()
-	if infJumpEnabled and LocalPlayer.Character then
-		local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if infJumpEnabled then
+		local char = LocalPlayer.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum:ChangeState(Enum.HumanoidStateType.Jumping)
 		end
 	end
 end)
 
-RunService.Heartbeat:Connect(function()
+-- MOVEMENT + GRAVITY
+RunService.Stepped:Connect(function()
 	if not playerEnabled then return end
 
 	local char = LocalPlayer.Character
@@ -191,8 +209,9 @@ RunService.Heartbeat:Connect(function()
 	if not hrp or not hum then return end
 
 	workspace.Gravity = gravity
-	local dir = hum.MoveDirection
-	if dir.Magnitude > 0 then
-		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.08))
+
+	local moveDir = hum.MoveDirection
+	if moveDir.Magnitude > 0 then
+		hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.05))
 	end
 end)
