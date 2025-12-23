@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Nexus Hub v1.2.7 ☄️",
+    Name = "Nexus Hub v1.3.9 ☄️",
     KeySystem = true,
     KeySettings = {
         FileName = "HydraKey",
@@ -20,45 +20,69 @@ local LocalPlayer = Players.LocalPlayer
 local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
+local performanceEnabled = false
 local infStaminaEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
-local staminaConn, staminaModule, noclipConn
+local staminaConn = nil
+local staminaModule = nil
+local noclipConn = nil
 
-local spawnedBalls = {}
-local MAX_BALLS = 10
-
--- PLAYER
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
-PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
-PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,70},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
+PlayerTab:CreateToggle({
+    Name = "Enable Player",
+    CurrentValue = false,
+    Callback = function(v)
+        playerEnabled = v
+    end
+})
+
 PlayerTab:CreateSlider({
-    Name="Gravity",
-    Range={0,300},
-    Increment=1,
-    CurrentValue=196,
-    Callback=function(v)
-        gravity=v
-        if playerEnabled then workspace.Gravity=v end
+    Name = "CFrame Speed",
+    Range = {1,170},
+    Increment = 1,
+    CurrentValue = 1,
+    Callback = function(v)
+        cframeSpeed = v
+    end
+})
+
+PlayerTab:CreateSlider({
+    Name = "Gravity",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 196,
+    Callback = function(v)
+        gravity = v
+        if playerEnabled then
+            workspace.Gravity = v
+        end
     end
 })
 
 PlayerTab:CreateToggle({
-    Name="Noclip (Bypass)",
-    CurrentValue=false,
-    Callback=function(v)
-        noclipEnabled=v
-        if noclipConn then noclipConn:Disconnect() noclipConn=nil end
+    Name = "Noclip (Bypass)",
+    CurrentValue = false,
+    Callback = function(v)
+        noclipEnabled = v
+
+        if noclipConn then
+            noclipConn:Disconnect()
+            noclipConn = nil
+        end
+
         if v then
-            noclipConn=RunService.Stepped:Connect(function()
-                local c=LocalPlayer.Character
-                if c then
-                    for _,p in ipairs(c:GetDescendants()) do
-                        if p:IsA("BasePart") then p.CanCollide=false end
+            noclipConn = RunService.Stepped:Connect(function()
+                local char = LocalPlayer.Character
+                if char then
+                    for _,part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
                     end
                 end
             end)
@@ -66,24 +90,40 @@ PlayerTab:CreateToggle({
     end
 })
 
-PlayerTab:CreateToggle({Name="InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
+PlayerTab:CreateToggle({
+    Name = "InfJump",
+    CurrentValue = false,
+    Callback = function(v)
+        infJumpEnabled = v
+    end
+})
 
--- FORSAKEN
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
 
 ForsakenTab:CreateToggle({
-    Name="Inf Stamina",
-    CurrentValue=false,
-    Callback=function(v)
-        infStaminaEnabled=v
-        if staminaConn then staminaConn:Disconnect() staminaConn=nil end
+    Name = "Inf Stamina",
+    CurrentValue = false,
+    Callback = function(v)
+        infStaminaEnabled = v
+
+        if staminaConn then
+            staminaConn:Disconnect()
+            staminaConn = nil
+        end
+
         if v then
             pcall(function()
-                local rs=cloneref(game:GetService("ReplicatedStorage"))
-                staminaModule=require(rs.Systems.Character.Game.Sprinting)
-                staminaConn=RunService.Heartbeat:Connect(function()
+                local rs = cloneref(game:GetService("ReplicatedStorage"))
+                local sprintModule = rs:WaitForChild("Systems")
+                    :WaitForChild("Character")
+                    :WaitForChild("Game")
+                    :WaitForChild("Sprinting")
+
+                staminaModule = require(sprintModule)
+
+                staminaConn = RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
-                        staminaModule.Stamina=750
+                        staminaModule.Stamina = 750
                     end
                 end)
             end)
@@ -91,115 +131,74 @@ ForsakenTab:CreateToggle({
     end
 })
 
--- IN-GAME
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
 InGameTab:CreateToggle({
-    Name="Performance Mode",
-    CurrentValue=false,
-    Callback=function(v)
+    Name = "Performance Mode",
+    CurrentValue = false,
+    Callback = function(v)
+        performanceEnabled = v
         pcall(function()
             if v then
-                storedEffects={}
-                for _,o in ipairs(workspace:GetDescendants()) do
-                    if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
-                        storedEffects[o]=o.Enabled
-                        o.Enabled=false
+                storedEffects = {}
+                for _,obj in ipairs(workspace:GetDescendants()) do
+                    if obj:IsA("ParticleEmitter")
+                    or obj:IsA("Trail")
+                    or obj:IsA("Beam") then
+                        storedEffects[obj] = obj.Enabled
+                        obj.Enabled = false
                     end
                 end
                 for _,fx in ipairs(Lighting:GetChildren()) do
-                    if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
-                    or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
+                    if fx:IsA("BloomEffect")
+                    or fx:IsA("BlurEffect")
+                    or fx:IsA("SunRaysEffect")
+                    or fx:IsA("ColorCorrectionEffect")
                     or fx:IsA("DepthOfFieldEffect") then
-                        storedEffects[fx]=fx.Enabled
-                        fx.Enabled=false
+                        storedEffects[fx] = fx.Enabled
+                        fx.Enabled = false
                     end
                 end
             else
-                for o,s in pairs(storedEffects) do
-                    if o and o.Parent then o.Enabled=s end
+                for obj,state in pairs(storedEffects) do
+                    if obj and obj.Parent then
+                        obj.Enabled = state
+                    end
                 end
-                storedEffects={}
+                storedEffects = {}
             end
         end)
     end
 })
 
-InGameTab:CreateButton({
-    Name="Spawn Ball",
-    Callback=function()
-        if #spawnedBalls>=MAX_BALLS then return end
-        local char=LocalPlayer.Character
-        local hrp=char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-
-        local ball=Instance.new("Part")
-        ball.Shape=Enum.PartType.Ball
-        ball.Size=Vector3.new(3.5,3.5,3.5)
-        ball.Color=Color3.fromRGB(120,190,255)
-        ball.Transparency=0.5
-        ball.Material=Enum.Material.SmoothPlastic
-        ball.Anchored=false
-        ball.CanCollide=true
-        ball.Massless=false
-        ball.CustomPhysicalProperties=PhysicalProperties.new(
-            0.05,  -- density (bem leve)
-            0.05,  -- friction
-            0.8,   -- elasticity
-            1,
-            1
-        )
-        ball.CFrame=hrp.CFrame*CFrame.new(0,0,-8)
-        ball.Parent=workspace
-
-        ball.Touched:Connect(function(hit)
-            local root=hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
-            if root then
-                local dir=(ball.Position-root.Position).Unit
-                ball:ApplyImpulse(dir*25)
-            end
-        end)
-
-        local drag=Instance.new("DragDetector")
-        drag.Parent=ball
-
-        table.insert(spawnedBalls,ball)
-    end
-})
-
-InGameTab:CreateButton({
-    Name="Delete Balls",
-    Callback=function()
-        for _,b in ipairs(spawnedBalls) do
-            if b and b.Parent then b:Destroy() end
-        end
-        table.clear(spawnedBalls)
-    end
-})
-
--- CREDITS
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
-CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
-CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Light pushable balls\n- Smaller size\n- Improved physics"})
 
--- RUNTIME
+CreditsTab:CreateParagraph({Title="Version",Content="v1.3.9"})
+CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Noclip bypass\n- CFrame speed limit adjusted\n- Stability improvements"})
+
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
-        local h=LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-    local c=LocalPlayer.Character
-    local hrp=c and c:FindFirstChild("HumanoidRootPart")
-    local h=c and c:FindFirstChildOfClass("Humanoid")
-    if not hrp or not h then return end
-    workspace.Gravity=gravity
-    local d=h.MoveDirection
-    if d.Magnitude>0 then
-        hrp.CFrame=hrp.CFrame+(d*(cframeSpeed*0.08))
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    if not hrp or not hum then return end
+
+    workspace.Gravity = gravity
+
+    local moveDir = hum.MoveDirection
+    if moveDir.Magnitude > 0 then
+        hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.08))
     end
 end)
