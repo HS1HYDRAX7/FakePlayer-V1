@@ -1,176 +1,91 @@
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 
-local lp = Players.LocalPlayer
+local Player = Players.LocalPlayer
+local Character, Humanoid, Root
 
-local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v1.3.9",
-	Theme = "Amethyst"
-})
-
-pcall(function()
-	if Window.Gui and Window.Gui:FindFirstChildWhichIsA("UIScale", true) then
-		Window.Gui:FindFirstChildWhichIsA("UIScale", true).Scale = 1.2
-	end
-end)
-
-local playerEnabled = false
-local noclipEnabled = false
-local infJumpEnabled = false
-
-local cframeSpeed = 1
-local gravity = 196.2
-
-local noclipConn
-local infJumpConn
-
-local function getChar()
-	return lp.Character
+local function UpdateChar()
+	Character = Player.Character or Player.CharacterAdded:Wait()
+	Humanoid = Character:WaitForChild("Humanoid")
+	Root = Character:WaitForChild("HumanoidRootPart")
 end
+UpdateChar()
+Player.CharacterAdded:Connect(UpdateChar)
 
-local PlayerTab = Window:CreateTab({Name="Player",Icon="account_circle"})
+local Flux = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Flux/main/source.lua"))()
+local Window = Flux:Window("Nexus Hub", "v1.4.2☄️", Color3.fromRGB(155, 90, 255), Enum.KeyCode.RightShift)
 
-PlayerTab:CreateToggle({
-	Name="Enable Player",
-	Callback=function(v)
-		playerEnabled = v
-	end
-})
+local CFrameSpeed = false
+local SpeedValue = 170
+local NoClip = false
+local InfJump = false
+local GravityEnabled = false
+local GravityValue = 50
 
-PlayerTab:CreateSlider({
-	Name="CFrame Speed",
-	Min=1,
-	Max=170,
-	Default=1,
-	Callback=function(v)
-		cframeSpeed = v
-	end
-})
-
-PlayerTab:CreateToggle({
-	Name="Noclip",
-	Callback=function(v)
-		noclipEnabled = v
-		if noclipConn then noclipConn:Disconnect() noclipConn=nil end
-
-		if v then
-			noclipConn = RunService.Stepped:Connect(function()
-				local char = getChar()
-				if not char then return end
-				for _,p in ipairs(char:GetDescendants()) do
-					if p:IsA("BasePart") then
-						p.CanCollide = false
-					end
-				end
-			end)
-		else
-			local char = getChar()
-			if char then
-				for _,p in ipairs(char:GetDescendants()) do
-					if p:IsA("BasePart") then
-						p.CanCollide = true
-					end
-				end
-			end
-		end
-	end
-})
-
-PlayerTab:CreateToggle({
-	Name="Inf Jump",
-	Callback=function(v)
-		infJumpEnabled = v
-	end
-})
-
-local ForsakenTab = Window:CreateTab({Name="Forsaken",Icon="extension"})
-
-local staminaConn
-ForsakenTab:CreateToggle({
-	Name="Inf Stamina",
-	Callback=function(v)
-		if staminaConn then staminaConn:Disconnect() staminaConn=nil end
-		if v then
-			local rs = cloneref(game:GetService("ReplicatedStorage"))
-			local sprint = rs.Systems.Character.Game.Sprinting
-			local m = require(sprint)
-			staminaConn = RunService.Heartbeat:Connect(function()
-				m.Stamina = 750
-			end)
-		end
-	end
-})
-
-local InGameTab = Window:CreateTab({Name="In-game",Icon="settings_brightness"})
-
-local effects = {}
-InGameTab:CreateToggle({
-	Name="Performance Mode",
-	Callback=function(v)
-		if v then
-			effects = {}
-			for _,obj in ipairs(workspace:GetDescendants()) do
-				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					effects[obj] = obj.Enabled
-					obj.Enabled = false
-				end
-			end
-			for _,fx in ipairs(game:GetService("Lighting"):GetChildren()) do
-				if fx:IsA("PostEffect") then
-					effects[fx] = fx.Enabled
-					fx.Enabled = false
-				end
-			end
-		else
-			for obj,state in pairs(effects) do
-				if obj and obj.Parent then
-					obj.Enabled = state
-				end
-			end
-			effects = {}
-		end
-	end
-})
-
-local InfoTab = Window:CreateTab({Name="Information",Icon="info"})
-
-local clock = InfoTab:CreateLabel("00:00:00")
-task.spawn(function()
-	while task.wait(1) do
-		clock:SetText(os.date("%H:%M:%S"))
-	end
-end)
-
-InfoTab:CreateLabel("Creators")
-InfoTab:CreateLabel("Hydra")
-InfoTab:CreateLabel("Changelog")
-InfoTab:CreateLabel("v1.3.9")
-
-UserInputService.JumpRequest:Connect(function()
-	if infJumpEnabled then
-		local char = getChar()
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum:ChangeState(Enum.HumanoidStateType.Jumping)
-			hum:ChangeState(Enum.HumanoidStateType.Freefall)
+RunService.RenderStepped:Connect(function()
+	if CFrameSpeed and Root and Humanoid then
+		local dir = Humanoid.MoveDirection
+		if dir.Magnitude > 0 then
+			Root.CFrame += dir * (SpeedValue / 60)
 		end
 	end
 end)
 
 RunService.Stepped:Connect(function()
-	if not playerEnabled then return end
-	local char = getChar()
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if not hrp or not hum then return end
-
-	workspace.Gravity = gravity
-
-	local dir = hum.MoveDirection
-	if dir.Magnitude > 0 then
-		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.05))
+	if Character then
+		for _, v in ipairs(Character:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = not NoClip
+			end
+		end
 	end
 end)
+
+UIS.JumpRequest:Connect(function()
+	if InfJump and Humanoid then
+		Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if GravityEnabled then
+		workspace.Gravity = GravityValue
+	else
+		workspace.Gravity = 196.2
+	end
+end)
+
+local PlayerTab = Window:Tab("Player", "http://www.roblox.com/asset/?id=6026568216")
+local Movement = PlayerTab:Section("Movement")
+
+Movement:Toggle("CFrame Speed", false, function(v)
+	CFrameSpeed = v
+end)
+
+Movement:Slider("Speed", 1, 170, SpeedValue, function(v)
+	SpeedValue = v
+end)
+
+Movement:Toggle("Noclip", false, function(v)
+	NoClip = v
+end)
+
+Movement:Toggle("Infinite Jump", false, function(v)
+	InfJump = v
+end)
+
+Movement:Toggle("Low Gravity", false, function(v)
+	GravityEnabled = v
+end)
+
+Movement:Slider("Gravity", 10, 196, GravityValue, function(v)
+	GravityValue = v
+end)
+
+local InfoTab = Window:Tab("Information", "http://www.roblox.com/asset/?id=6022668888")
+local Info = InfoTab:Section("")
+
+Info:Label("Nexus Hub")
+Info:Label("Version: 1.4.2")
+Info:Label("UI: Flux")
