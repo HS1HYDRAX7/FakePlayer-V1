@@ -21,7 +21,6 @@ local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
 local infStaminaEnabled = false
-local invisibleEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
@@ -30,118 +29,51 @@ local storedEffects = {}
 local staminaConn
 local staminaModule
 local noclipConn
-local noclipParts = {}
-local invisData = {}
+local originalCollisions = {}
 
 local PlayerTab = Window:CreateTab("Player",110476445363181)
 
 PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
-
-PlayerTab:CreateSlider({
-    Name="CFrame Speed",
-    Range={1,170},
-    Increment=1,
-    CurrentValue=1,
-    Callback=function(v)cframeSpeed=v end
-})
-
-PlayerTab:CreateSlider({
-    Name="Gravity",
-    Range={0,500},
-    Increment=1,
-    CurrentValue=196,
-    Callback=function(v)
-        gravity=v
-        if playerEnabled then workspace.Gravity=v end
-    end
-})
+PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,170},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
+PlayerTab:CreateSlider({Name="Gravity",Range={0,500},Increment=1,CurrentValue=196,Callback=function(v)gravity=v if playerEnabled then workspace.Gravity=v end end})
 
 PlayerTab:CreateToggle({
     Name="Noclip (Bypass)",
     CurrentValue=false,
     Callback=function(v)
         noclipEnabled=v
+        local char = LocalPlayer.Character
+        if noclipConn then noclipConn:Disconnect() noclipConn=nil end
 
-        if noclipConn then
-            noclipConn:Disconnect()
-            noclipConn=nil
-        end
-
-        if v then
-            noclipParts={}
-            noclipConn=RunService.Stepped:Connect(function()
-                local char=LocalPlayer.Character
-                if not char then return end
+        if char then
+            if v then
+                originalCollisions = {}
                 for _,p in ipairs(char:GetDescendants()) do
                     if p:IsA("BasePart") then
-                        if noclipParts[p]==nil then
-                            noclipParts[p]=p.CanCollide
+                        originalCollisions[p] = p.CanCollide
+                        p.CanCollide = false
+                    end
+                end
+                noclipConn = RunService.Stepped:Connect(function()
+                    for _,p in ipairs(char:GetDescendants()) do
+                        if p:IsA("BasePart") then
+                            p.CanCollide = false
                         end
-                        p.CanCollide=false
+                    end
+                end)
+            else
+                for p,state in pairs(originalCollisions) do
+                    if p and p.Parent then
+                        p.CanCollide = state
                     end
                 end
-            end)
-        else
-            for p,state in pairs(noclipParts) do
-                if p and p.Parent then
-                    p.CanCollide=state
-                end
+                originalCollisions = {}
             end
-            noclipParts={}
         end
     end
 })
 
-PlayerTab:CreateToggle({
-    Name="InfJump",
-    CurrentValue=false,
-    Callback=function(v)infJumpEnabled=v end
-})
-
-PlayerTab:CreateToggle({
-    Name="Invisible",
-    CurrentValue=false,
-    Callback=function(v)
-        invisibleEnabled=v
-        local char=LocalPlayer.Character
-        if not char then return end
-
-        if v then
-            invisData={}
-            for _,obj in ipairs(char:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    invisData[obj]={obj.Transparency,obj.LocalTransparencyModifier,obj.CanQuery}
-                    obj.Transparency=1
-                    obj.LocalTransparencyModifier=1
-                    obj.CanQuery=false
-                elseif obj:IsA("Decal") then
-                    invisData[obj]={obj.Transparency}
-                    obj.Transparency=1
-                end
-            end
-            local hum=char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                invisData[hum]={hum.NameDisplayDistance}
-                hum.NameDisplayDistance=0
-            end
-        else
-            for obj,data in pairs(invisData) do
-                if obj and obj.Parent then
-                    if obj:IsA("BasePart") then
-                        obj.Transparency=data[1]
-                        obj.LocalTransparencyModifier=data[2]
-                        obj.CanQuery=data[3]
-                    elseif obj:IsA("Decal") then
-                        obj.Transparency=data[1]
-                    elseif obj:IsA("Humanoid") then
-                        obj.NameDisplayDistance=data[1]
-                    end
-                end
-            end
-            invisData={}
-        end
-    end
-})
+PlayerTab:CreateToggle({Name="InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
 
 local ForsakenTab = Window:CreateTab("Forsaken 📑",4483362458)
 
@@ -156,9 +88,7 @@ ForsakenTab:CreateToggle({
             local sprint=rs:WaitForChild("Systems"):WaitForChild("Character"):WaitForChild("Game"):WaitForChild("Sprinting")
             staminaModule=require(sprint)
             staminaConn=RunService.Heartbeat:Connect(function()
-                if infStaminaEnabled and staminaModule then
-                    staminaModule.Stamina=750
-                end
+                if infStaminaEnabled then staminaModule.Stamina=750 end
             end)
         end
     end
@@ -196,23 +126,17 @@ InGameTab:CreateToggle({
 
 local InfoTab = Window:CreateTab("Information 💾",4483362458)
 
-local clockParagraph = InfoTab:CreateParagraph({
-    Title="Clock",
-    Content="--:--:--"
-})
+local clockParagraph = InfoTab:CreateParagraph({Title="Clock",Content="--:--:--"})
 
 task.spawn(function()
     while task.wait(1) do
         local t=os.date("*t")
-        clockParagraph:Set({
-            Title="Clock",
-            Content=string.format("%02d:%02d:%02d",t.hour,t.min,t.sec)
-        })
+        clockParagraph:Set({Title="Clock",Content=string.format("%02d:%02d:%02d",t.hour,t.min,t.sec)})
     end
 end)
 
 InfoTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-InfoTab:CreateParagraph({Title="Changelog",Content="- Stability\n- Forsaken Support\n- Noclip Fix\n- Invisibility"})
+InfoTab:CreateParagraph({Title="Changelog",Content="- Stability\n- Forsaken Support\n- Noclip Bypass"})
 
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
