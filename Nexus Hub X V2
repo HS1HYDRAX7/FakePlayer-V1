@@ -4,17 +4,21 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 
 local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v1.3.9 ☄️",
-	Subtitle = "",
-	Theme = "Amethyst",
-	Size = UDim2.fromOffset(520, 420)
+	Name = "Nexus Hub",
+	Subtitle = "v1.3.9",
+	Size = UDim2.fromOffset(620, 460)
 })
 
-local playerEnabled = false
+-- =======================
+-- VARIABLES
+-- =======================
+
+local playerEnabled = true
 local noclipEnabled = false
 local infJumpEnabled = false
 local infStaminaEnabled = false
@@ -23,26 +27,20 @@ local cframeSpeed = 1
 local gravity = 196.2
 
 local noclipConn
-local staminaConn
 local jumpConn
+local staminaConn
+
 local storedCollisions = {}
-local storedEffects = {}
 
--- PLAYER
-local PlayerTab = Window:CreateTab({
-	Name = "Player",
-	Icon = "user"
-})
+-- =======================
+-- PLAYER TAB
+-- =======================
 
-PlayerTab:CreateToggle({
-	Name = "Enable Player",
-	Default = false,
-	Callback = function(v)
-		playerEnabled = v
-	end
-})
+local PlayerTab = Window:CreateTab("Player", true)
 
-PlayerTab:CreateSlider({
+local PlayerSection = PlayerTab:CreateSection("Movement")
+
+PlayerSection:CreateSlider({
 	Name = "CFrame Speed",
 	Min = 1,
 	Max = 170,
@@ -52,7 +50,7 @@ PlayerTab:CreateSlider({
 	end
 })
 
-PlayerTab:CreateSlider({
+PlayerSection:CreateSlider({
 	Name = "Gravity",
 	Min = 0,
 	Max = 300,
@@ -62,51 +60,10 @@ PlayerTab:CreateSlider({
 	end
 })
 
-PlayerTab:CreateToggle({
-	Name = "Noclip",
-	Default = false,
-	Callback = function(v)
-		noclipEnabled = v
+local PlayerSection2 = PlayerTab:CreateSection("Abilities")
 
-		if noclipConn then
-			noclipConn:Disconnect()
-			noclipConn = nil
-		end
-
-		local function apply(char)
-			storedCollisions = {}
-			for _,p in ipairs(char:GetDescendants()) do
-				if p:IsA("BasePart") then
-					storedCollisions[p] = p.CanCollide
-					p.CanCollide = false
-				end
-			end
-		end
-
-		local char = LocalPlayer.Character
-		if v and char then
-			apply(char)
-			noclipConn = RunService.Stepped:Connect(function()
-				if not noclipEnabled then return end
-				for part in pairs(storedCollisions) do
-					if part and part.Parent then
-						part.CanCollide = false
-					end
-				end
-			end)
-		else
-			for part,state in pairs(storedCollisions) do
-				if part and part.Parent then
-					part.CanCollide = state
-				end
-			end
-			storedCollisions = {}
-		end
-	end
-})
-
-PlayerTab:CreateToggle({
-	Name = "Inf Jump",
+PlayerSection2:CreateToggle({
+	Name = "Infinite Jump",
 	Default = false,
 	Callback = function(v)
 		infJumpEnabled = v
@@ -122,20 +79,67 @@ PlayerTab:CreateToggle({
 				local hum = char and char:FindFirstChildOfClass("Humanoid")
 				if hum then
 					hum:ChangeState(Enum.HumanoidStateType.Jumping)
-					hum:ChangeState(Enum.HumanoidStateType.Freefall)
 				end
 			end)
 		end
 	end
 })
 
--- FORSAKEN
-local ForsakenTab = Window:CreateTab({
-	Name = "Forsaken 📑",
-	Icon = "file-text"
+PlayerSection2:CreateToggle({
+	Name = "Noclip",
+	Default = false,
+	Callback = function(v)
+		noclipEnabled = v
+
+		if noclipConn then
+			noclipConn:Disconnect()
+			noclipConn = nil
+		end
+
+		local function restore()
+			for part,state in pairs(storedCollisions) do
+				if part and part.Parent then
+					part.CanCollide = state
+				end
+			end
+			storedCollisions = {}
+		end
+
+		if not v then
+			restore()
+			return
+		end
+
+		local char = LocalPlayer.Character
+		if not char then return end
+
+		for _,p in ipairs(char:GetDescendants()) do
+			if p:IsA("BasePart") then
+				storedCollisions[p] = p.CanCollide
+				p.CanCollide = false
+			end
+		end
+
+		noclipConn = RunService.Stepped:Connect(function()
+			if not noclipEnabled then return end
+			for part in pairs(storedCollisions) do
+				if part and part.Parent then
+					part.CanCollide = false
+				end
+			end
+		end)
+	end
 })
 
-ForsakenTab:CreateToggle({
+-- =======================
+-- FORSAKEN TAB
+-- =======================
+
+local ForsakenTab = Window:CreateTab("Forsaken 📑")
+
+local ForsakenSection = ForsakenTab:CreateSection("Game")
+
+ForsakenSection:CreateToggle({
 	Name = "Inf Stamina",
 	Default = false,
 	Callback = function(v)
@@ -146,86 +150,99 @@ ForsakenTab:CreateToggle({
 			staminaConn = nil
 		end
 
-		if v then
-			pcall(function()
-				local rs = cloneref(game:GetService("ReplicatedStorage"))
-				local sprint = rs.Systems.Character.Game.Sprinting
-				local m = require(sprint)
+		if not v then return end
 
-				staminaConn = RunService.Heartbeat:Connect(function()
-					if infStaminaEnabled then
-						m.Stamina = 750
-					end
-				end)
+		pcall(function()
+			local rs = cloneref(ReplicatedStorage)
+			local sprint = rs.Systems.Character.Game.Sprinting
+			local m = require(sprint)
+
+			staminaConn = RunService.Heartbeat:Connect(function()
+				if infStaminaEnabled then
+					m.Stamina = 750
+				end
 			end)
-		end
+		end)
 	end
 })
 
--- IN-GAME
-local InGameTab = Window:CreateTab({
-	Name = "In-game",
-	Icon = "settings"
-})
+-- =======================
+-- IN-GAME TAB
+-- =======================
 
-InGameTab:CreateToggle({
+local InGameTab = Window:CreateTab("In-Game")
+
+local InGameSection = InGameTab:CreateSection("Performance")
+
+local storedFX = {}
+
+InGameSection:CreateToggle({
 	Name = "Performance Mode",
 	Default = false,
 	Callback = function(v)
 		if v then
-			storedEffects = {}
+			storedFX = {}
 			for _,obj in ipairs(workspace:GetDescendants()) do
 				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					storedEffects[obj] = obj.Enabled
+					storedFX[obj] = obj.Enabled
 					obj.Enabled = false
 				end
 			end
 			for _,fx in ipairs(Lighting:GetChildren()) do
 				if fx:IsA("PostEffect") then
-					storedEffects[fx] = fx.Enabled
+					storedFX[fx] = fx.Enabled
 					fx.Enabled = false
 				end
 			end
 		else
-			for obj,state in pairs(storedEffects) do
+			for obj,state in pairs(storedFX) do
 				if obj and obj.Parent then
 					obj.Enabled = state
 				end
 			end
-			storedEffects = {}
+			storedFX = {}
 		end
 	end
 })
 
--- INFORMATION
-local InfoTab = Window:CreateTab({
-	Name = "Information 💾",
-	Icon = "info"
-})
+-- =======================
+-- INFORMATION TAB
+-- =======================
 
-local clock = InfoTab:CreateLabel("00:00:00")
+local InfoTab = Window:CreateTab("Information 💾")
+
+local InfoSection1 = InfoTab:CreateSection("Clock")
+
+local ClockLabel = InfoSection1:CreateLabel("00:00:00")
 
 task.spawn(function()
 	while task.wait(1) do
-		clock:SetText(os.date("%H:%M:%S"))
+		ClockLabel:SetText(os.date("%H:%M:%S"))
 	end
 end)
 
-InfoTab:CreateLabel("Version")
-InfoTab:CreateLabel("v1.3.9")
-InfoTab:CreateLabel("Creators")
-InfoTab:CreateLabel("Hydra / Nexus Hub Team")
-InfoTab:CreateLabel("Changelog")
-InfoTab:CreateLabel("Stability fixes and rewrites")
+local InfoSection2 = InfoTab:CreateSection("Creators")
 
--- MOVEMENT / GRAVITY
+InfoSection2:CreateLabel("Hydra")
+InfoSection2:CreateLabel("Nexus Hub Team")
+
+local InfoSection3 = InfoTab:CreateSection("Changelog")
+
+InfoSection3:CreateLabel("v1.3.9")
+InfoSection3:CreateLabel("Bug fixes")
+InfoSection3:CreateLabel("UI resize")
+InfoSection3:CreateLabel("Function rewrites")
+
+-- =======================
+-- MOVEMENT LOOP
+-- =======================
+
 RunService.Stepped:Connect(function()
 	if not playerEnabled then return end
 
 	local char = LocalPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
-
 	if not hrp or not hum then return end
 
 	workspace.Gravity = gravity
