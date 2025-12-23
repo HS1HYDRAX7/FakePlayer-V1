@@ -3,244 +3,166 @@ local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-S
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local LocalPlayer = Players.LocalPlayer
+local lp = Players.LocalPlayer
 
 local Window = Luna:CreateWindow({
-	Name = "Nexus Hub",
-	Subtitle = "v1.3.9",
-	Size = UDim2.fromOffset(620, 460)
+	Name = "Nexus Hub v1.3.9",
+	Theme = "Amethyst"
 })
 
--- =======================
--- VARIABLES
--- =======================
+pcall(function()
+	if Window.Gui and Window.Gui:FindFirstChildWhichIsA("UIScale", true) then
+		Window.Gui:FindFirstChildWhichIsA("UIScale", true).Scale = 1.2
+	end
+end)
 
-local playerEnabled = true
+local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
-local infStaminaEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
 
 local noclipConn
-local jumpConn
-local staminaConn
+local infJumpConn
 
-local storedCollisions = {}
+local function getChar()
+	return lp.Character
+end
 
--- =======================
--- PLAYER TAB
--- =======================
+local PlayerTab = Window:CreateTab({Name="Player",Icon="account_circle"})
 
-local PlayerTab = Window:CreateTab("Player", true)
+PlayerTab:CreateToggle({
+	Name="Enable Player",
+	Callback=function(v)
+		playerEnabled = v
+	end
+})
 
-local PlayerSection = PlayerTab:CreateSection("Movement")
-
-PlayerSection:CreateSlider({
-	Name = "CFrame Speed",
-	Min = 1,
-	Max = 170,
-	Default = 1,
-	Callback = function(v)
+PlayerTab:CreateSlider({
+	Name="CFrame Speed",
+	Min=1,
+	Max=170,
+	Default=1,
+	Callback=function(v)
 		cframeSpeed = v
 	end
 })
 
-PlayerSection:CreateSlider({
-	Name = "Gravity",
-	Min = 0,
-	Max = 300,
-	Default = 196,
-	Callback = function(v)
-		gravity = v
-	end
-})
-
-local PlayerSection2 = PlayerTab:CreateSection("Abilities")
-
-PlayerSection2:CreateToggle({
-	Name = "Infinite Jump",
-	Default = false,
-	Callback = function(v)
-		infJumpEnabled = v
-
-		if jumpConn then
-			jumpConn:Disconnect()
-			jumpConn = nil
-		end
+PlayerTab:CreateToggle({
+	Name="Noclip",
+	Callback=function(v)
+		noclipEnabled = v
+		if noclipConn then noclipConn:Disconnect() noclipConn=nil end
 
 		if v then
-			jumpConn = UserInputService.JumpRequest:Connect(function()
-				local char = LocalPlayer.Character
-				local hum = char and char:FindFirstChildOfClass("Humanoid")
-				if hum then
-					hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			noclipConn = RunService.Stepped:Connect(function()
+				local char = getChar()
+				if not char then return end
+				for _,p in ipairs(char:GetDescendants()) do
+					if p:IsA("BasePart") then
+						p.CanCollide = false
+					end
 				end
 			end)
+		else
+			local char = getChar()
+			if char then
+				for _,p in ipairs(char:GetDescendants()) do
+					if p:IsA("BasePart") then
+						p.CanCollide = true
+					end
+				end
+			end
 		end
 	end
 })
 
-PlayerSection2:CreateToggle({
-	Name = "Noclip",
-	Default = false,
-	Callback = function(v)
-		noclipEnabled = v
-
-		if noclipConn then
-			noclipConn:Disconnect()
-			noclipConn = nil
-		end
-
-		local function restore()
-			for part,state in pairs(storedCollisions) do
-				if part and part.Parent then
-					part.CanCollide = state
-				end
-			end
-			storedCollisions = {}
-		end
-
-		if not v then
-			restore()
-			return
-		end
-
-		local char = LocalPlayer.Character
-		if not char then return end
-
-		for _,p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") then
-				storedCollisions[p] = p.CanCollide
-				p.CanCollide = false
-			end
-		end
-
-		noclipConn = RunService.Stepped:Connect(function()
-			if not noclipEnabled then return end
-			for part in pairs(storedCollisions) do
-				if part and part.Parent then
-					part.CanCollide = false
-				end
-			end
-		end)
+PlayerTab:CreateToggle({
+	Name="Inf Jump",
+	Callback=function(v)
+		infJumpEnabled = v
 	end
 })
 
--- =======================
--- FORSAKEN TAB
--- =======================
+local ForsakenTab = Window:CreateTab({Name="Forsaken",Icon="extension"})
 
-local ForsakenTab = Window:CreateTab("Forsaken 📑")
-
-local ForsakenSection = ForsakenTab:CreateSection("Game")
-
-ForsakenSection:CreateToggle({
-	Name = "Inf Stamina",
-	Default = false,
-	Callback = function(v)
-		infStaminaEnabled = v
-
-		if staminaConn then
-			staminaConn:Disconnect()
-			staminaConn = nil
-		end
-
-		if not v then return end
-
-		pcall(function()
-			local rs = cloneref(ReplicatedStorage)
+local staminaConn
+ForsakenTab:CreateToggle({
+	Name="Inf Stamina",
+	Callback=function(v)
+		if staminaConn then staminaConn:Disconnect() staminaConn=nil end
+		if v then
+			local rs = cloneref(game:GetService("ReplicatedStorage"))
 			local sprint = rs.Systems.Character.Game.Sprinting
 			local m = require(sprint)
-
 			staminaConn = RunService.Heartbeat:Connect(function()
-				if infStaminaEnabled then
-					m.Stamina = 750
-				end
+				m.Stamina = 750
 			end)
-		end)
+		end
 	end
 })
 
--- =======================
--- IN-GAME TAB
--- =======================
+local InGameTab = Window:CreateTab({Name="In-game",Icon="settings_brightness"})
 
-local InGameTab = Window:CreateTab("In-Game")
-
-local InGameSection = InGameTab:CreateSection("Performance")
-
-local storedFX = {}
-
-InGameSection:CreateToggle({
-	Name = "Performance Mode",
-	Default = false,
-	Callback = function(v)
+local effects = {}
+InGameTab:CreateToggle({
+	Name="Performance Mode",
+	Callback=function(v)
 		if v then
-			storedFX = {}
+			effects = {}
 			for _,obj in ipairs(workspace:GetDescendants()) do
 				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					storedFX[obj] = obj.Enabled
+					effects[obj] = obj.Enabled
 					obj.Enabled = false
 				end
 			end
-			for _,fx in ipairs(Lighting:GetChildren()) do
+			for _,fx in ipairs(game:GetService("Lighting"):GetChildren()) do
 				if fx:IsA("PostEffect") then
-					storedFX[fx] = fx.Enabled
+					effects[fx] = fx.Enabled
 					fx.Enabled = false
 				end
 			end
 		else
-			for obj,state in pairs(storedFX) do
+			for obj,state in pairs(effects) do
 				if obj and obj.Parent then
 					obj.Enabled = state
 				end
 			end
-			storedFX = {}
+			effects = {}
 		end
 	end
 })
 
--- =======================
--- INFORMATION TAB
--- =======================
+local InfoTab = Window:CreateTab({Name="Information",Icon="info"})
 
-local InfoTab = Window:CreateTab("Information 💾")
-
-local InfoSection1 = InfoTab:CreateSection("Clock")
-
-local ClockLabel = InfoSection1:CreateLabel("00:00:00")
-
+local clock = InfoTab:CreateLabel("00:00:00")
 task.spawn(function()
 	while task.wait(1) do
-		ClockLabel:SetText(os.date("%H:%M:%S"))
+		clock:SetText(os.date("%H:%M:%S"))
 	end
 end)
 
-local InfoSection2 = InfoTab:CreateSection("Creators")
+InfoTab:CreateLabel("Creators")
+InfoTab:CreateLabel("Hydra")
+InfoTab:CreateLabel("Changelog")
+InfoTab:CreateLabel("v1.3.9")
 
-InfoSection2:CreateLabel("Hydra")
-InfoSection2:CreateLabel("Nexus Hub Team")
-
-local InfoSection3 = InfoTab:CreateSection("Changelog")
-
-InfoSection3:CreateLabel("v1.3.9")
-InfoSection3:CreateLabel("Bug fixes")
-InfoSection3:CreateLabel("UI resize")
-InfoSection3:CreateLabel("Function rewrites")
-
--- =======================
--- MOVEMENT LOOP
--- =======================
+UserInputService.JumpRequest:Connect(function()
+	if infJumpEnabled then
+		local char = getChar()
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			hum:ChangeState(Enum.HumanoidStateType.Freefall)
+		end
+	end
+end)
 
 RunService.Stepped:Connect(function()
 	if not playerEnabled then return end
-
-	local char = LocalPlayer.Character
+	local char = getChar()
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if not hrp or not hum then return end
@@ -249,6 +171,6 @@ RunService.Stepped:Connect(function()
 
 	local dir = hum.MoveDirection
 	if dir.Magnitude > 0 then
-		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.06))
+		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.05))
 	end
 end)
