@@ -1,4 +1,4 @@
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,14 +7,11 @@ local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
-local Window = Rayfield:CreateWindow({
+local Window = Luna:CreateWindow({
 	Name = "Nexus Hub v1.3.9 ☄️",
-	LoadingTitle = "Nexus Hub",
-	LoadingSubtitle = "",
-	ConfigurationSaving = {
-		Enabled = false
-	},
-	Theme = "Amethyst"
+	Subtitle = "",
+	Theme = "Amethyst",
+	Size = UDim2.fromOffset(520, 420)
 })
 
 local playerEnabled = false
@@ -27,15 +24,19 @@ local gravity = 196.2
 
 local noclipConn
 local staminaConn
+local jumpConn
 local storedCollisions = {}
 local storedEffects = {}
 
--- PLAYER TAB
-local PlayerTab = Window:CreateTab("Player", 110476445363181)
+-- PLAYER
+local PlayerTab = Window:CreateTab({
+	Name = "Player",
+	Icon = "user"
+})
 
 PlayerTab:CreateToggle({
 	Name = "Enable Player",
-	CurrentValue = false,
+	Default = false,
 	Callback = function(v)
 		playerEnabled = v
 	end
@@ -43,9 +44,9 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
 	Name = "CFrame Speed",
-	Range = {1,170},
-	Increment = 1,
-	CurrentValue = 1,
+	Min = 1,
+	Max = 170,
+	Default = 1,
 	Callback = function(v)
 		cframeSpeed = v
 	end
@@ -53,9 +54,9 @@ PlayerTab:CreateSlider({
 
 PlayerTab:CreateSlider({
 	Name = "Gravity",
-	Range = {0,300},
-	Increment = 1,
-	CurrentValue = 196,
+	Min = 0,
+	Max = 300,
+	Default = 196,
 	Callback = function(v)
 		gravity = v
 	end
@@ -63,7 +64,7 @@ PlayerTab:CreateSlider({
 
 PlayerTab:CreateToggle({
 	Name = "Noclip",
-	CurrentValue = false,
+	Default = false,
 	Callback = function(v)
 		noclipEnabled = v
 
@@ -72,10 +73,7 @@ PlayerTab:CreateToggle({
 			noclipConn = nil
 		end
 
-		local char = LocalPlayer.Character
-		if not char then return end
-
-		if v then
+		local function apply(char)
 			storedCollisions = {}
 			for _,p in ipairs(char:GetDescendants()) do
 				if p:IsA("BasePart") then
@@ -83,7 +81,11 @@ PlayerTab:CreateToggle({
 					p.CanCollide = false
 				end
 			end
+		end
 
+		local char = LocalPlayer.Character
+		if v and char then
+			apply(char)
 			noclipConn = RunService.Stepped:Connect(function()
 				if not noclipEnabled then return end
 				for part in pairs(storedCollisions) do
@@ -105,18 +107,37 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateToggle({
 	Name = "Inf Jump",
-	CurrentValue = false,
+	Default = false,
 	Callback = function(v)
 		infJumpEnabled = v
+
+		if jumpConn then
+			jumpConn:Disconnect()
+			jumpConn = nil
+		end
+
+		if v then
+			jumpConn = UserInputService.JumpRequest:Connect(function()
+				local char = LocalPlayer.Character
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
+				if hum then
+					hum:ChangeState(Enum.HumanoidStateType.Jumping)
+					hum:ChangeState(Enum.HumanoidStateType.Freefall)
+				end
+			end)
+		end
 	end
 })
 
--- FORSAKEN TAB
-local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
+-- FORSAKEN
+local ForsakenTab = Window:CreateTab({
+	Name = "Forsaken 📑",
+	Icon = "file-text"
+})
 
 ForsakenTab:CreateToggle({
 	Name = "Inf Stamina",
-	CurrentValue = false,
+	Default = false,
 	Callback = function(v)
 		infStaminaEnabled = v
 
@@ -126,25 +147,30 @@ ForsakenTab:CreateToggle({
 		end
 
 		if v then
-			local rs = cloneref(game:GetService("ReplicatedStorage"))
-			local sprint = rs.Systems.Character.Game.Sprinting
-			local m = require(sprint)
+			pcall(function()
+				local rs = cloneref(game:GetService("ReplicatedStorage"))
+				local sprint = rs.Systems.Character.Game.Sprinting
+				local m = require(sprint)
 
-			staminaConn = RunService.Heartbeat:Connect(function()
-				if infStaminaEnabled then
-					m.Stamina = 750
-				end
+				staminaConn = RunService.Heartbeat:Connect(function()
+					if infStaminaEnabled then
+						m.Stamina = 750
+					end
+				end)
 			end)
 		end
 	end
 })
 
--- IN-GAME TAB
-local InGameTab = Window:CreateTab("In-game", 4483362458)
+-- IN-GAME
+local InGameTab = Window:CreateTab({
+	Name = "In-game",
+	Icon = "settings"
+})
 
 InGameTab:CreateToggle({
 	Name = "Performance Mode",
-	CurrentValue = false,
+	Default = false,
 	Callback = function(v)
 		if v then
 			storedEffects = {}
@@ -171,34 +197,28 @@ InGameTab:CreateToggle({
 	end
 })
 
--- INFORMATION TAB
-local InfoTab = Window:CreateTab("Information 💾", 4483362458)
+-- INFORMATION
+local InfoTab = Window:CreateTab({
+	Name = "Information 💾",
+	Icon = "info"
+})
 
-local clockLabel = InfoTab:CreateLabel("00:00:00")
+local clock = InfoTab:CreateLabel("00:00:00")
 
 task.spawn(function()
 	while task.wait(1) do
-		clockLabel:SetText(os.date("%H:%M:%S"))
+		clock:SetText(os.date("%H:%M:%S"))
 	end
 end)
 
+InfoTab:CreateLabel("Version")
+InfoTab:CreateLabel("v1.3.9")
 InfoTab:CreateLabel("Creators")
 InfoTab:CreateLabel("Hydra / Nexus Hub Team")
 InfoTab:CreateLabel("Changelog")
-InfoTab:CreateLabel("v1.3.9")
+InfoTab:CreateLabel("Stability fixes and rewrites")
 
--- INF JUMP
-UserInputService.JumpRequest:Connect(function()
-	if infJumpEnabled then
-		local char = LocalPlayer.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum:ChangeState(Enum.HumanoidStateType.Jumping)
-		end
-	end
-end)
-
--- MOVEMENT + GRAVITY
+-- MOVEMENT / GRAVITY
 RunService.Stepped:Connect(function()
 	if not playerEnabled then return end
 
@@ -210,8 +230,8 @@ RunService.Stepped:Connect(function()
 
 	workspace.Gravity = gravity
 
-	local moveDir = hum.MoveDirection
-	if moveDir.Magnitude > 0 then
-		hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.05))
+	local dir = hum.MoveDirection
+	if dir.Magnitude > 0 then
+		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.06))
 	end
 end)
