@@ -27,17 +27,18 @@ local gravity = 196.2
 
 local storedEffects = {}
 local staminaConn, staminaModule, noclipConn
-local spawnedBlocks = {}
-local MAX_BLOCKS = 10
+
+local spawnedBalls = {}
+local MAX_BALLS = 10
 
 -- PLAYER
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
-PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,170},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
+PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,70},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
 PlayerTab:CreateSlider({
     Name="Gravity",
-    Range={0,500},
+    Range={0,300},
     Increment=1,
     CurrentValue=196,
     Callback=function(v)
@@ -127,14 +128,14 @@ InGameTab:CreateToggle({
 InGameTab:CreateButton({
     Name="Spawn Ball",
     Callback=function()
-        if #spawnedBlocks>=MAX_BLOCKS then return end
+        if #spawnedBalls>=MAX_BALLS then return end
         local char=LocalPlayer.Character
         local hrp=char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
         local ball=Instance.new("Part")
         ball.Shape=Enum.PartType.Ball
-        ball.Size=Vector3.new(6,6,6)
+        ball.Size=Vector3.new(3.5,3.5,3.5)
         ball.Color=Color3.fromRGB(120,190,255)
         ball.Transparency=0.5
         ball.Material=Enum.Material.SmoothPlastic
@@ -142,29 +143,37 @@ InGameTab:CreateButton({
         ball.CanCollide=true
         ball.Massless=false
         ball.CustomPhysicalProperties=PhysicalProperties.new(
-            0.3,   -- density (leve)
-            0.2,   -- friction
-            0.5,   -- elasticity
-            1,     -- friction weight
-            1      -- elasticity weight
+            0.05,  -- density (bem leve)
+            0.05,  -- friction
+            0.8,   -- elasticity
+            1,
+            1
         )
-        ball.CFrame=hrp.CFrame*CFrame.new(0,0,-10)
+        ball.CFrame=hrp.CFrame*CFrame.new(0,0,-8)
         ball.Parent=workspace
+
+        ball.Touched:Connect(function(hit)
+            local root=hit.Parent and hit.Parent:FindFirstChild("HumanoidRootPart")
+            if root then
+                local dir=(ball.Position-root.Position).Unit
+                ball:ApplyImpulse(dir*25)
+            end
+        end)
 
         local drag=Instance.new("DragDetector")
         drag.Parent=ball
 
-        table.insert(spawnedBlocks,ball)
+        table.insert(spawnedBalls,ball)
     end
 })
 
 InGameTab:CreateButton({
-    Name="Delete Blocks",
+    Name="Delete Balls",
     Callback=function()
-        for _,b in ipairs(spawnedBlocks) do
+        for _,b in ipairs(spawnedBalls) do
             if b and b.Parent then b:Destroy() end
         end
-        table.clear(spawnedBlocks)
+        table.clear(spawnedBalls)
     end
 })
 
@@ -172,7 +181,7 @@ InGameTab:CreateButton({
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Physics ball\n- Pushable & light\n- Stability fixes"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Light pushable balls\n- Smaller size\n- Improved physics"})
 
 -- RUNTIME
 UserInputService.JumpRequest:Connect(function()
