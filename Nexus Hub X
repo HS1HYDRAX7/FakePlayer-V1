@@ -26,55 +26,38 @@ local cframeSpeed = 1
 local gravity = 196.2
 
 local storedEffects = {}
-local staminaConn = nil
-local staminaModule = nil
-local noclipConn = nil
-
+local staminaConn, staminaModule, noclipConn
 local spawnedBlocks = {}
 local MAX_BLOCKS = 10
 
--- PLAYER TAB
+-- PLAYER
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
-PlayerTab:CreateToggle({
-    Name = "Enable Player",
-    CurrentValue = false,
-    Callback = function(v) playerEnabled = v end
-})
-
+PlayerTab:CreateToggle({Name="Enable Player",CurrentValue=false,Callback=function(v)playerEnabled=v end})
+PlayerTab:CreateSlider({Name="CFrame Speed",Range={1,170},Increment=1,CurrentValue=1,Callback=function(v)cframeSpeed=v end})
 PlayerTab:CreateSlider({
-    Name = "CFrame Speed",
-    Range = {1,170},
-    Increment = 1,
-    CurrentValue = 1,
-    Callback = function(v) cframeSpeed = v end
-})
-
-PlayerTab:CreateSlider({
-    Name = "Gravity",
-    Range = {0,500},
-    Increment = 1,
-    CurrentValue = 196,
-    Callback = function(v)
-        gravity = v
-        if playerEnabled then workspace.Gravity = v end
+    Name="Gravity",
+    Range={0,500},
+    Increment=1,
+    CurrentValue=196,
+    Callback=function(v)
+        gravity=v
+        if playerEnabled then workspace.Gravity=v end
     end
 })
 
 PlayerTab:CreateToggle({
-    Name = "Noclip (Bypass)",
-    CurrentValue = false,
-    Callback = function(v)
-        noclipEnabled = v
-        if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+    Name="Noclip (Bypass)",
+    CurrentValue=false,
+    Callback=function(v)
+        noclipEnabled=v
+        if noclipConn then noclipConn:Disconnect() noclipConn=nil end
         if v then
-            noclipConn = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                if char then
-                    for _,p in ipairs(char:GetDescendants()) do
-                        if p:IsA("BasePart") then
-                            p.CanCollide = false
-                        end
+            noclipConn=RunService.Stepped:Connect(function()
+                local c=LocalPlayer.Character
+                if c then
+                    for _,p in ipairs(c:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide=false end
                     end
                 end
             end)
@@ -82,29 +65,24 @@ PlayerTab:CreateToggle({
     end
 })
 
-PlayerTab:CreateToggle({
-    Name = "InfJump",
-    CurrentValue = false,
-    Callback = function(v) infJumpEnabled = v end
-})
+PlayerTab:CreateToggle({Name="InfJump",CurrentValue=false,Callback=function(v)infJumpEnabled=v end})
 
--- FORSAKEN TAB
+-- FORSAKEN
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
 
 ForsakenTab:CreateToggle({
-    Name = "Inf Stamina",
-    CurrentValue = false,
-    Callback = function(v)
-        infStaminaEnabled = v
-        if staminaConn then staminaConn:Disconnect() staminaConn = nil end
+    Name="Inf Stamina",
+    CurrentValue=false,
+    Callback=function(v)
+        infStaminaEnabled=v
+        if staminaConn then staminaConn:Disconnect() staminaConn=nil end
         if v then
             pcall(function()
-                local rs = cloneref(game:GetService("ReplicatedStorage"))
-                local sprint = rs.Systems.Character.Game.Sprinting
-                staminaModule = require(sprint)
-                staminaConn = RunService.Heartbeat:Connect(function()
+                local rs=cloneref(game:GetService("ReplicatedStorage"))
+                staminaModule=require(rs.Systems.Character.Game.Sprinting)
+                staminaConn=RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
-                        staminaModule.Stamina = 750
+                        staminaModule.Stamina=750
                     end
                 end)
             end)
@@ -112,76 +90,77 @@ ForsakenTab:CreateToggle({
     end
 })
 
--- IN-GAME TAB
+-- IN-GAME
 local InGameTab = Window:CreateTab("In-game", 4483362458)
 
 InGameTab:CreateToggle({
-    Name = "Performance Mode",
-    CurrentValue = false,
-    Callback = function(v)
+    Name="Performance Mode",
+    CurrentValue=false,
+    Callback=function(v)
         pcall(function()
             if v then
-                storedEffects = {}
+                storedEffects={}
                 for _,o in ipairs(workspace:GetDescendants()) do
                     if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
-                        storedEffects[o] = o.Enabled
-                        o.Enabled = false
+                        storedEffects[o]=o.Enabled
+                        o.Enabled=false
                     end
                 end
                 for _,fx in ipairs(Lighting:GetChildren()) do
-                    if fx:IsA("BloomEffect")
-                    or fx:IsA("BlurEffect")
-                    or fx:IsA("SunRaysEffect")
-                    or fx:IsA("ColorCorrectionEffect")
+                    if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
+                    or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
                     or fx:IsA("DepthOfFieldEffect") then
-                        storedEffects[fx] = fx.Enabled
-                        fx.Enabled = false
+                        storedEffects[fx]=fx.Enabled
+                        fx.Enabled=false
                     end
                 end
             else
                 for o,s in pairs(storedEffects) do
-                    if o and o.Parent then o.Enabled = s end
+                    if o and o.Parent then o.Enabled=s end
                 end
-                storedEffects = {}
+                storedEffects={}
             end
         end)
     end
 })
 
 InGameTab:CreateButton({
-    Name = "Spawn Block",
-    Callback = function()
-        if #spawnedBlocks >= MAX_BLOCKS then return end
-
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    Name="Spawn Ball",
+    Callback=function()
+        if #spawnedBlocks>=MAX_BLOCKS then return end
+        local char=LocalPlayer.Character
+        local hrp=char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local block = Instance.new("Part")
-        block.Size = Vector3.new(6,6,6)
-        block.Color = Color3.fromRGB(120,190,255)
-        block.Transparency = 0.5
-        block.Material = Enum.Material.SmoothPlastic
-        block.Anchored = false
-        block.CanCollide = true
-        block.CFrame = hrp.CFrame * CFrame.new(0,0,-10)
-        block.Parent = workspace
+        local ball=Instance.new("Part")
+        ball.Shape=Enum.PartType.Ball
+        ball.Size=Vector3.new(6,6,6)
+        ball.Color=Color3.fromRGB(120,190,255)
+        ball.Transparency=0.5
+        ball.Material=Enum.Material.SmoothPlastic
+        ball.Anchored=false
+        ball.CanCollide=true
+        ball.Massless=false
+        ball.CustomPhysicalProperties=PhysicalProperties.new(
+            0.3,   -- density (leve)
+            0.2,   -- friction
+            0.5,   -- elasticity
+            1,     -- friction weight
+            1      -- elasticity weight
+        )
+        ball.CFrame=hrp.CFrame*CFrame.new(0,0,-10)
+        ball.Parent=workspace
 
-        local mesh = Instance.new("SpecialMesh")
-        mesh.MeshType = Enum.MeshType.Sphere
-        mesh.Scale = Vector3.new(1.05,1.05,1.05)
-        mesh.Parent = block
+        local drag=Instance.new("DragDetector")
+        drag.Parent=ball
 
-        local drag = Instance.new("DragDetector")
-        drag.Parent = block
-
-        table.insert(spawnedBlocks, block)
+        table.insert(spawnedBlocks,ball)
     end
 })
 
 InGameTab:CreateButton({
-    Name = "Delete Blocks",
-    Callback = function()
+    Name="Delete Blocks",
+    Callback=function()
         for _,b in ipairs(spawnedBlocks) do
             if b and b.Parent then b:Destroy() end
         end
@@ -189,30 +168,29 @@ InGameTab:CreateButton({
     end
 })
 
--- CREDITS TAB
+-- CREDITS
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
-
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Rounded blocks\n- Drag system\n- Noclip bypass\n- Stability fixes"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Physics ball\n- Pushable & light\n- Stability fixes"})
 
 -- RUNTIME
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+        local h=LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not hum then return end
-    workspace.Gravity = gravity
-    local dir = hum.MoveDirection
-    if dir.Magnitude > 0 then
-        hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.08))
+    local c=LocalPlayer.Character
+    local hrp=c and c:FindFirstChild("HumanoidRootPart")
+    local h=c and c:FindFirstChildOfClass("Humanoid")
+    if not hrp or not h then return end
+    workspace.Gravity=gravity
+    local d=h.MoveDirection
+    if d.Magnitude>0 then
+        hrp.CFrame=hrp.CFrame+(d*(cframeSpeed*0.08))
     end
 end)
