@@ -1,12 +1,15 @@
 local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
 
 local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v1.3.9 ☄️",
+	Name = "Nexus Hub v1.3.9",
 	Subtitle = "Nexus Hub",
 	KeySystem = true,
 	KeySettings = {
-		Key = "NHX",
-		SaveKey = false
+		Title = "Nexus Hub Key",
+		Subtitle = "Enter the key",
+		Note = "",
+		SaveKey = false,
+		Key = {"NHX"}
 	}
 })
 
@@ -174,8 +177,10 @@ task.spawn(function()
 	end
 end)
 
-InfoTab:CreateLabel("Creators: Hydra / Nexus Hub Team")
-InfoTab:CreateLabel("Changelog: v1.3.9")
+InfoTab:CreateLabel("Creators")
+InfoTab:CreateLabel("Hydra / Nexus Hub Team")
+InfoTab:CreateLabel("Changelog")
+InfoTab:CreateLabel("v1.3.9")
 
 UserInputService.JumpRequest:Connect(function()
 	if infJumpEnabled and LocalPlayer.Character then
