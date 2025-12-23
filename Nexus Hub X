@@ -1,44 +1,48 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 pcall(function()
-    if not game.CoreGui:FindFirstChild("ModernClock") then
-        local UserInputService = game:GetService("UserInputService")
+    if game.CoreGui:FindFirstChild("ModernClock") then return end
 
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "ModernClock"
-        gui.ResetOnSpawn = false
-        gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        gui.Parent = game.CoreGui
+    local GuiService = game:GetService("GuiService")
+    local UserInputService = game:GetService("UserInputService")
 
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0,150,0,43)
-        frame.Position = UDim2.new(0.1,0,0,0)
-        frame.AnchorPoint = Vector2.new(0.5,0)
-        frame.BackgroundTransparency = 0.1
-        frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-        frame.Active = true
-        frame.Draggable = true
-        frame.Parent = gui
+    local inset = GuiService:GetGuiInset()
+    local isMobile = UserInputService.TouchEnabled
 
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1,0)
-        corner.Parent = frame
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ModernClock"
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.Parent = game.CoreGui
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1,0,1,0)
-        label.BackgroundTransparency = 1
-        label.Font = Enum.Font.GothamBold
-        label.TextColor3 = Color3.fromRGB(255,255,255)
-        label.TextSize = 32
-        label.Parent = frame
+    local frame = Instance.new("Frame")
+    frame.Size = isMobile and UDim2.new(0,180,0,52) or UDim2.new(0,150,0,43)
+    frame.Position = UDim2.new(0.5,0,0,inset.Y + (isMobile and 8 or 6))
+    frame.AnchorPoint = Vector2.new(0.5,0)
+    frame.BackgroundTransparency = 0.1
+    frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    frame.Active = true
+    frame.Draggable = not isMobile
+    frame.Parent = gui
 
-        task.spawn(function()
-            while task.wait(1) do
-                local t = os.date("*t")
-                label.Text = string.format("%02d:%02d:%02d", t.hour, t.min, t.sec)
-            end
-        end)
-    end
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1,0)
+    corner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.TextSize = isMobile and 34 or 32
+    label.Parent = frame
+
+    task.spawn(function()
+        while task.wait(1) do
+            local t = os.date("*t")
+            label.Text = string.format("%02d:%02d:%02d", t.hour, t.min, t.sec)
+        end
+    end)
 end)
 
 local Window = Rayfield:CreateWindow({
