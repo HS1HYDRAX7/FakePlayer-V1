@@ -31,14 +31,15 @@ local staminaConn = nil
 local staminaModule = nil
 local noclipConn = nil
 
+local spawnedBlocks = {}
+local MAX_BLOCKS = 10
+
 local PlayerTab = Window:CreateTab("Player", 110476445363181)
 
 PlayerTab:CreateToggle({
     Name = "Enable Player",
     CurrentValue = false,
-    Callback = function(v)
-        playerEnabled = v
-    end
+    Callback = function(v) playerEnabled = v end
 })
 
 PlayerTab:CreateSlider({
@@ -46,9 +47,7 @@ PlayerTab:CreateSlider({
     Range = {1,170},
     Increment = 1,
     CurrentValue = 1,
-    Callback = function(v)
-        cframeSpeed = v
-    end
+    Callback = function(v) cframeSpeed = v end
 })
 
 PlayerTab:CreateSlider({
@@ -58,9 +57,7 @@ PlayerTab:CreateSlider({
     CurrentValue = 196,
     Callback = function(v)
         gravity = v
-        if playerEnabled then
-            workspace.Gravity = v
-        end
+        if playerEnabled then workspace.Gravity = v end
     end
 })
 
@@ -69,20 +66,13 @@ PlayerTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         noclipEnabled = v
-
-        if noclipConn then
-            noclipConn:Disconnect()
-            noclipConn = nil
-        end
-
+        if noclipConn then noclipConn:Disconnect() noclipConn = nil end
         if v then
             noclipConn = RunService.Stepped:Connect(function()
                 local char = LocalPlayer.Character
                 if char then
-                    for _,part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+                    for _,p in ipairs(char:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = false end
                     end
                 end
             end)
@@ -93,9 +83,7 @@ PlayerTab:CreateToggle({
 PlayerTab:CreateToggle({
     Name = "InfJump",
     CurrentValue = false,
-    Callback = function(v)
-        infJumpEnabled = v
-    end
+    Callback = function(v) infJumpEnabled = v end
 })
 
 local ForsakenTab = Window:CreateTab("Forsaken 📑", 4483362458)
@@ -105,12 +93,7 @@ ForsakenTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         infStaminaEnabled = v
-
-        if staminaConn then
-            staminaConn:Disconnect()
-            staminaConn = nil
-        end
-
+        if staminaConn then staminaConn:Disconnect() staminaConn = nil end
         if v then
             pcall(function()
                 local rs = cloneref(game:GetService("ReplicatedStorage"))
@@ -118,9 +101,7 @@ ForsakenTab:CreateToggle({
                     :WaitForChild("Character")
                     :WaitForChild("Game")
                     :WaitForChild("Sprinting")
-
                 staminaModule = require(sprintModule)
-
                 staminaConn = RunService.Heartbeat:Connect(function()
                     if infStaminaEnabled and staminaModule then
                         staminaModule.Stamina = 750
@@ -142,9 +123,7 @@ InGameTab:CreateToggle({
             if v then
                 storedEffects = {}
                 for _,obj in ipairs(workspace:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter")
-                    or obj:IsA("Trail")
-                    or obj:IsA("Beam") then
+                    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
                         storedEffects[obj] = obj.Enabled
                         obj.Enabled = false
                     end
@@ -161,9 +140,7 @@ InGameTab:CreateToggle({
                 end
             else
                 for obj,state in pairs(storedEffects) do
-                    if obj and obj.Parent then
-                        obj.Enabled = state
-                    end
+                    if obj and obj.Parent then obj.Enabled = state end
                 end
                 storedEffects = {}
             end
@@ -171,32 +148,65 @@ InGameTab:CreateToggle({
     end
 })
 
+InGameTab:CreateButton({
+    Name = "Spawn Block",
+    Callback = function()
+        if #spawnedBlocks >= MAX_BLOCKS then return end
+
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(6, 2, 6)
+        part.Color = Color3.fromRGB(120, 190, 255)
+        part.Transparency = 0.5
+        part.Anchored = false
+        part.CanCollide = true
+        part.CFrame = hrp.CFrame * CFrame.new(0, -3, -8)
+        part.Parent = workspace
+
+        pcall(function()
+            part.CornerRadius = UDim.new(0, 12)
+        end)
+
+        local drag = Instance.new("DragDetector")
+        drag.Parent = part
+
+        table.insert(spawnedBlocks, part)
+    end
+})
+
+InGameTab:CreateButton({
+    Name = "Delete Blocks",
+    Callback = function()
+        for _,b in ipairs(spawnedBlocks) do
+            if b and b.Parent then b:Destroy() end
+        end
+        table.clear(spawnedBlocks)
+    end
+})
+
 local CreditsTab = Window:CreateTab("Credits 💻", 4483362458)
 
 CreditsTab:CreateParagraph({Title="Version",Content="v1.2.7"})
 CreditsTab:CreateParagraph({Title="Creators",Content="Hydra\nNexus Hub Team"})
-CreditsTab:CreateParagraph({Title="Changelog",Content="- Noclip bypass\n- CFrame speed limit adjusted\n- Stability improvements"})
+CreditsTab:CreateParagraph({Title="Changelog",Content="- Spawn Block\n- Delete Blocks\n- Noclip bypass\n- Stability improvements"})
 
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
-
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChildOfClass("Humanoid")
-
     if not hrp or not hum then return end
-
     workspace.Gravity = gravity
-
     local moveDir = hum.MoveDirection
     if moveDir.Magnitude > 0 then
         hrp.CFrame = hrp.CFrame + (moveDir * (cframeSpeed * 0.08))
