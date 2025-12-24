@@ -54,7 +54,7 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
     Name = "CFrame Speed",
-    Range = {1,170},
+    Range = {1,70},
     Increment = 1,
     CurrentValue = 1,
     Callback = function(v)
@@ -64,7 +64,7 @@ PlayerTab:CreateSlider({
 
 PlayerTab:CreateSlider({
     Name = "Gravity",
-    Range = {0,500},
+    Range = {0,300},
     Increment = 1,
     CurrentValue = 196,
     Callback = function(v)
@@ -76,7 +76,7 @@ PlayerTab:CreateSlider({
 }, "Player_Gravity")
 
 PlayerTab:CreateToggle({
-    Name = "Noclip (Bypass)",
+    Name = "Noclip",
     CurrentValue = false,
     Callback = function(v)
         noclipEnabled = v
