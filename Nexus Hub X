@@ -42,33 +42,29 @@ PlayerTab:CreateToggle({
     CurrentValue=false,
     Callback=function(v)
         noclipEnabled=v
-        local char = LocalPlayer.Character
         if noclipConn then noclipConn:Disconnect() noclipConn=nil end
-
-        if char then
-            if v then
-                originalCollisions = {}
+        local char=LocalPlayer.Character
+        if not char then return end
+        if v then
+            originalCollisions={}
+            for _,p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    originalCollisions[p]=p.CanCollide
+                    p.CanCollide=false
+                end
+            end
+            noclipConn=RunService.Stepped:Connect(function()
                 for _,p in ipairs(char:GetDescendants()) do
                     if p:IsA("BasePart") then
-                        originalCollisions[p] = p.CanCollide
-                        p.CanCollide = false
+                        p.CanCollide=false
                     end
                 end
-                noclipConn = RunService.Stepped:Connect(function()
-                    for _,p in ipairs(char:GetDescendants()) do
-                        if p:IsA("BasePart") then
-                            p.CanCollide = false
-                        end
-                    end
-                end)
-            else
-                for p,state in pairs(originalCollisions) do
-                    if p and p.Parent then
-                        p.CanCollide = state
-                    end
-                end
-                originalCollisions = {}
+            end)
+        else
+            for p,state in pairs(originalCollisions) do
+                if p and p.Parent then p.CanCollide=state end
             end
+            originalCollisions={}
         end
     end
 })
@@ -126,12 +122,21 @@ InGameTab:CreateToggle({
 
 local InfoTab = Window:CreateTab("Information 💾",4483362458)
 
-local clockParagraph = InfoTab:CreateParagraph({Title="Clock",Content="--:--:--"})
+local clockParagraph = InfoTab:CreateParagraph({
+    Title="Clock & Date",
+    Content="--:--:-- | --/--/----"
+})
 
 task.spawn(function()
     while task.wait(1) do
         local t=os.date("*t")
-        clockParagraph:Set({Title="Clock",Content=string.format("%02d:%02d:%02d",t.hour,t.min,t.sec)})
+        clockParagraph:Set({
+            Title="Clock & Date",
+            Content=string.format(
+                "%02d:%02d:%02d | %02d/%02d/%04d",
+                t.hour,t.min,t.sec,t.day,t.month,t.year
+            )
+        })
     end
 end)
 
