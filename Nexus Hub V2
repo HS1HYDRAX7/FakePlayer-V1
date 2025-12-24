@@ -1,4 +1,4 @@
--- LUNA UI (SEM KEY SYSTEM)
+-- LUNA UI
 local Luna = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
 ))()
@@ -7,7 +7,6 @@ local Window = Luna:CreateWindow({
     Name = "Nexus Hub v1.3.9 ☄️",
     Subtitle = "by Hydra",
     LoadingEnabled = true,
-
     ConfigSettings = {
         RootFolder = nil,
         ConfigFolder = "NexusHub"
@@ -19,13 +18,14 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local TextChatService = game:GetService("TextChatService")
 local LocalPlayer = Players.LocalPlayer
 
 -- STATES
 local playerEnabled = false
-local noclipEnabled = false
 local infJumpEnabled = false
 local infStaminaEnabled = false
+local chatAssistantEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
@@ -33,10 +33,10 @@ local gravity = 196.2
 local storedEffects = {}
 local staminaConn
 local staminaModule
-local noclipConn
-local originalCollisions = {}
 
+----------------------------------------------------------------
 -- PLAYER TAB
+----------------------------------------------------------------
 local PlayerTab = Window:CreateTab({
     Name = "Player",
     Icon = "person",
@@ -50,21 +50,21 @@ PlayerTab:CreateToggle({
     Callback = function(v)
         playerEnabled = v
     end
-}, "Player_Enable")
+})
 
 PlayerTab:CreateSlider({
     Name = "CFrame Speed",
-    Range = {1,70},
+    Range = {1,170},
     Increment = 1,
     CurrentValue = 1,
     Callback = function(v)
         cframeSpeed = v
     end
-}, "Player_Speed")
+})
 
 PlayerTab:CreateSlider({
     Name = "Gravity",
-    Range = {0,300},
+    Range = {0,500},
     Increment = 1,
     CurrentValue = 196,
     Callback = function(v)
@@ -73,48 +73,7 @@ PlayerTab:CreateSlider({
             workspace.Gravity = v
         end
     end
-}, "Player_Gravity")
-
-PlayerTab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Callback = function(v)
-        noclipEnabled = v
-        local char = LocalPlayer.Character
-
-        if noclipConn then
-            noclipConn:Disconnect()
-            noclipConn = nil
-        end
-
-        if char then
-            if v then
-                originalCollisions = {}
-                for _,p in ipairs(char:GetDescendants()) do
-                    if p:IsA("BasePart") then
-                        originalCollisions[p] = p.CanCollide
-                        p.CanCollide = false
-                    end
-                end
-
-                noclipConn = RunService.Stepped:Connect(function()
-                    for _,p in ipairs(char:GetDescendants()) do
-                        if p:IsA("BasePart") then
-                            p.CanCollide = false
-                        end
-                    end
-                end)
-            else
-                for p,state in pairs(originalCollisions) do
-                    if p and p.Parent then
-                        p.CanCollide = state
-                    end
-                end
-                originalCollisions = {}
-            end
-        end
-    end
-}, "Player_Noclip")
+})
 
 PlayerTab:CreateToggle({
     Name = "Inf Jump",
@@ -122,9 +81,11 @@ PlayerTab:CreateToggle({
     Callback = function(v)
         infJumpEnabled = v
     end
-}, "Player_InfJump")
+})
 
+----------------------------------------------------------------
 -- FORSAKEN TAB
+----------------------------------------------------------------
 local ForsakenTab = Window:CreateTab({
     Name = "Forsaken 📑",
     Icon = "description",
@@ -159,9 +120,11 @@ ForsakenTab:CreateToggle({
             end)
         end
     end
-}, "Forsaken_InfStamina")
+})
 
--- IN-GAME TAB
+----------------------------------------------------------------
+-- IN-GAME TAB (CHAT ASSISTANT AQUI)
+----------------------------------------------------------------
 local InGameTab = Window:CreateTab({
     Name = "In-game",
     Icon = "sports_esports",
@@ -169,6 +132,87 @@ local InGameTab = Window:CreateTab({
     ShowTitle = true
 })
 
+----------------------------------------------------------------
+-- CHAT ASSISTANT (SAFE REPHRASE)
+----------------------------------------------------------------
+
+-- Dicionário base (expansível)
+local Synonyms = {
+    ["bug"] = "problema",
+    ["bugou"] = "apresentou um problema",
+    ["bugado"] = "com problema",
+    ["quebrou"] = "parou de funcionar",
+    ["crashou"] = "fechou inesperadamente",
+    ["hack"] = "ferramenta",
+    ["exploit"] = "recurso",
+    ["lag"] = "atraso",
+    ["lagado"] = "com atraso"
+}
+
+-- Reformulação geral (qualquer frase)
+local function RephraseMessage(msg)
+    msg = msg:lower()
+
+    for word, replacement in pairs(Synonyms) do
+        msg = msg:gsub("%f[%a]" .. word .. "%f[%A]", replacement)
+    end
+
+    -- suavização geral (não burla filtro)
+    msg = msg:gsub("!", "")
+    msg = msg:gsub("%s+", " ")
+    msg = msg .. "."
+
+    return msg
+end
+
+-- Hook seguro
+local originalSend
+local hookedChannel
+
+local function EnableChatAssistant()
+    if TextChatService.ChatVersion ~= Enum.ChatVersion.TextChatService then
+        return
+    end
+
+    local channel = TextChatService.TextChannels.RBXGeneral
+    if not channel then return end
+
+    hookedChannel = channel
+    originalSend = channel.SendAsync
+
+    channel.SendAsync = function(self, message)
+        if chatAssistantEnabled then
+            message = RephraseMessage(message)
+        end
+        return originalSend(self, message)
+    end
+end
+
+local function DisableChatAssistant()
+    if hookedChannel and originalSend then
+        hookedChannel.SendAsync = originalSend
+    end
+    hookedChannel = nil
+    originalSend = nil
+end
+
+-- TOGGLE NA UI
+InGameTab:CreateToggle({
+    Name = "Chat Assistant (Safe Rephrase)",
+    CurrentValue = false,
+    Callback = function(v)
+        chatAssistantEnabled = v
+        if v then
+            EnableChatAssistant()
+        else
+            DisableChatAssistant()
+        end
+    end
+})
+
+----------------------------------------------------------------
+-- PERFORMANCE MODE
+----------------------------------------------------------------
 InGameTab:CreateToggle({
     Name = "Performance Mode",
     CurrentValue = false,
@@ -202,9 +246,11 @@ InGameTab:CreateToggle({
             storedEffects = {}
         end
     end
-}, "Game_Performance")
+})
 
--- INFORMATION TAB (COM RELÓGIO FUNCIONAL)
+----------------------------------------------------------------
+-- INFORMATION TAB
+----------------------------------------------------------------
 local InfoTab = Window:CreateTab({
     Name = "Information 💾",
     Icon = "info",
@@ -230,10 +276,12 @@ InfoTab:CreateParagraph({
 
 InfoTab:CreateParagraph({
     Title = "Changelog",
-    Text = "- Stability\n- Forsaken Support\n- Noclip Bypass"
+    Text = "- Stability\n- Chat Assistant\n- Forsaken Support"
 })
 
+----------------------------------------------------------------
 -- INF JUMP
+----------------------------------------------------------------
 UserInputService.JumpRequest:Connect(function()
     if infJumpEnabled and LocalPlayer.Character then
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -243,7 +291,9 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
+----------------------------------------------------------------
 -- MOVEMENT LOOP
+----------------------------------------------------------------
 RunService.Heartbeat:Connect(function()
     if not playerEnabled then return end
 
