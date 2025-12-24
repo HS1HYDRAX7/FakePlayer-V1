@@ -1,4 +1,4 @@
--- LUNA UI
+-- LUNA UI (SEM KEY SYSTEM)
 local Luna = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
 ))()
@@ -11,15 +11,6 @@ local Window = Luna:CreateWindow({
     ConfigSettings = {
         RootFolder = nil,
         ConfigFolder = "NexusHub"
-    },
-
-    KeySystem = true,
-    KeySettings = {
-        Title = "Nexus Hub",
-        Subtitle = "Key System",
-        Note = "Enter the key to access",
-        SaveKey = false,
-        Key = {"NHX"}
     }
 })
 
@@ -213,13 +204,24 @@ InGameTab:CreateToggle({
     end
 }, "Game_Performance")
 
--- INFORMATION TAB (SEM RELÓGIO)
+-- INFORMATION TAB (COM RELÓGIO FUNCIONAL)
 local InfoTab = Window:CreateTab({
     Name = "Information 💾",
     Icon = "info",
     ImageSource = "Material",
     ShowTitle = true
 })
+
+local clockLabel = InfoTab:CreateLabel({
+    Text = "Clock: --:--:--",
+    Style = 1
+})
+
+task.spawn(function()
+    while task.wait(1) do
+        clockLabel:Set("Clock: " .. os.date("%H:%M:%S"))
+    end
+end)
 
 InfoTab:CreateParagraph({
     Title = "Creators",
