@@ -1,4 +1,4 @@
--- Luna UI
+-- LUNA UI
 local Luna = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
 ))()
@@ -213,28 +213,13 @@ InGameTab:CreateToggle({
     end
 }, "Game_Performance")
 
--- INFORMATION TAB
+-- INFORMATION TAB (SEM RELÓGIO)
 local InfoTab = Window:CreateTab({
     Name = "Information 💾",
     Icon = "info",
     ImageSource = "Material",
     ShowTitle = true
 })
-
-local clockParagraph = InfoTab:CreateParagraph({
-    Title = "Clock",
-    Text = "--:--:--"
-})
-
-task.spawn(function()
-    while task.wait(1) do
-        local t = os.date("*t")
-        clockParagraph:Set({
-            Title = "Clock",
-            Text = string.format("%02d:%02d:%02d", t.hour, t.min, t.sec)
-        })
-    end
-end)
 
 InfoTab:CreateParagraph({
     Title = "Creators",
