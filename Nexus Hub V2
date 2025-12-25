@@ -3,6 +3,18 @@ local Luna = loadstring(game:HttpGet(
     true
 ))()
 
+local Window = Luna:CreateWindow({
+    Name = "Nexus Hub v2.0.5 ☄️",
+    Subtitle = "by Hydra",
+    LoadingEnabled = true,
+    LoadingTitle = "Nexus Hub V2 ☄️",
+    LoadingSubtitle = "Loading systems...",
+    ConfigSettings = {
+        RootFolder = nil,
+        ConfigFolder = "NexusHub"
+    }
+})
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -29,7 +41,6 @@ local function applyNoclip(character)
         noclipConn:Disconnect()
         noclipConn = nil
     end
-
     if not noclipEnabled or not character then return end
 
     originalCollisions = {}
@@ -43,7 +54,6 @@ local function applyNoclip(character)
     noclipConn = RunService.Stepped:Connect(function()
         if not noclipEnabled then return end
         if not character or not character.Parent then return end
-
         for _, p in ipairs(character:GetDescendants()) do
             if p:IsA("BasePart") then
                 p.CanCollide = false
@@ -57,13 +67,11 @@ local function restoreCollisions()
         noclipConn:Disconnect()
         noclipConn = nil
     end
-
     for p, state in pairs(originalCollisions) do
         if p and p.Parent then
             p.CanCollide = state
         end
     end
-
     originalCollisions = {}
 end
 
@@ -73,24 +81,6 @@ LocalPlayer.CharacterAdded:Connect(function(char)
         applyNoclip(char)
     end
 end)
-
-local Window = Luna:CreateWindow({
-    Name = "Nexus Hub v2.0.3 ☄️",
-    Subtitle = "by Hydra",
-    LoadingEnabled = true,
-    LoadingTitle = "Nexus Hub V2 ☄️",
-    LoadingSubtitle = "Loading systems...",
-    ConfigSettings = {
-        RootFolder = nil,
-        ConfigFolder = "NexusHub"
-    }
-})
-
-Window:CreateHomeTab({
-    SupportedExecutors = {"Krnl","Fluxus","Synapse X","Electron","Delta","Codex"},
-    DiscordInvite = "8fZJn5pRXw",
-    Icon = 1
-})
 
 local PlayerTab = Window:CreateTab({
     Name = "Player",
@@ -102,31 +92,25 @@ local PlayerTab = Window:CreateTab({
 PlayerTab:CreateToggle({
     Name = "Enable Player",
     CurrentValue = false,
-    Callback = function(v)
-        playerEnabled = v
-    end
+    Callback = function(v) playerEnabled = v end
 })
 
 PlayerTab:CreateSlider({
     Name = "CFrame Speed",
-    Range = {1,170},
+    Range = {1,70},
     Increment = 1,
     CurrentValue = 1,
-    Callback = function(v)
-        cframeSpeed = v
-    end
+    Callback = function(v) cframeSpeed = v end
 })
 
 PlayerTab:CreateSlider({
     Name = "Gravity",
-    Range = {0,500},
+    Range = {0,300},
     Increment = 1,
     CurrentValue = 196,
     Callback = function(v)
         gravity = v
-        if playerEnabled then
-            workspace.Gravity = v
-        end
+        if playerEnabled then workspace.Gravity = v end
     end
 })
 
@@ -146,9 +130,7 @@ PlayerTab:CreateToggle({
 PlayerTab:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
-    Callback = function(v)
-        infJumpEnabled = v
-    end
+    Callback = function(v) infJumpEnabled = v end
 })
 
 local ForsakenTab = Window:CreateTab({
@@ -163,12 +145,10 @@ ForsakenTab:CreateToggle({
     CurrentValue = false,
     Callback = function(v)
         infStaminaEnabled = v
-
         if staminaConn then
             staminaConn:Disconnect()
             staminaConn = nil
         end
-
         if v then
             local rs = cloneref(game:GetService("ReplicatedStorage"))
             local sprint = rs:WaitForChild("Systems")
@@ -177,7 +157,6 @@ ForsakenTab:CreateToggle({
                 :WaitForChild("Sprinting")
 
             staminaModule = require(sprint)
-
             staminaConn = RunService.Heartbeat:Connect(function()
                 if infStaminaEnabled then
                     staminaModule.Stamina = 750
@@ -200,14 +179,12 @@ InGameTab:CreateToggle({
     Callback = function(v)
         if v then
             storedEffects = {}
-
             for _, o in ipairs(workspace:GetDescendants()) do
                 if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
                     storedEffects[o] = o.Enabled
                     o.Enabled = false
                 end
             end
-
             for _, fx in ipairs(Lighting:GetChildren()) do
                 if fx:IsA("BloomEffect")
                 or fx:IsA("BlurEffect")
@@ -244,9 +221,9 @@ local ClockLabel = InfoTab:CreateLabel({
 task.spawn(function()
     while task.wait(1) do
         local t = os.date("*t")
-        ClockLabel:SetText(
-            string.format("Time: %02d:%02d:%02d", t.hour, t.min, t.sec)
-        )
+        ClockLabel:Set({
+            Text = string.format("Time: %02d:%02d:%02d", t.hour, t.min, t.sec)
+        })
     end
 end)
 
@@ -257,7 +234,7 @@ InfoTab:CreateParagraph({
 
 InfoTab:CreateParagraph({
     Title = "Changelog",
-    Text = "- Stability\n- Forsaken Support\n- Persistent Noclip"
+    Text = "- v2.0.5\n- Stability\n- Persistent Noclip\n- UI Improvements"
 })
 
 UserInputService.JumpRequest:Connect(function()
