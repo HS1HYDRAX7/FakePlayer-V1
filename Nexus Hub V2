@@ -1,4 +1,4 @@
--- Luna Interface Suite (SEM KEY / SEM CONFIG / SEM FLAGS)
+-- Luna Interface Suite
 local Luna = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua",
     true
@@ -11,11 +11,12 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
+----------------------------------------------------------------
 -- WINDOW
+----------------------------------------------------------------
 local Window = Luna:CreateWindow({
     Name = "Nexus Hub v1.3.9 ☄️",
     Subtitle = "Luna Edition",
-    LogoID = nil,
     LoadingEnabled = true,
     LoadingTitle = "Nexus Hub",
     LoadingSubtitle = "Luna Interface Suite"
@@ -25,9 +26,9 @@ local Window = Luna:CreateWindow({
 -- STATE
 ----------------------------------------------------------------
 local playerEnabled = false
-local noclipEnabled = false
 local infJumpEnabled = false
 local infStaminaEnabled = false
+local noclipEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
@@ -38,6 +39,22 @@ local staminaConn
 local staminaModule
 local storedEffects = {}
 local originalCollisions = {}
+
+----------------------------------------------------------------
+-- UTILS
+----------------------------------------------------------------
+local function setCharacterScale(character, scale)
+    for _,v in ipairs(character:GetDescendants()) do
+        if v:IsA("NumberValue") then
+            if v.Name == "BodyHeightScale"
+            or v.Name == "BodyWidthScale"
+            or v.Name == "BodyDepthScale"
+            or v.Name == "HeadScale" then
+                v.Value = scale
+            end
+        end
+    end
+end
 
 ----------------------------------------------------------------
 -- PLAYER TAB
@@ -196,7 +213,7 @@ InGameTab:CreateToggle({
     end
 })
 
--- PLAYER SIZE SLIDER (SEM FLAG)
+-- PLAYER SIZE SLIDER (FUNCIONAL)
 InGameTab:CreateSlider({
     Name = "Player Size",
     Description = "0.1 = mínimo | 1 = normal | 10 = máximo",
@@ -206,11 +223,8 @@ InGameTab:CreateSlider({
     Callback = function(v)
         currentScale = v
         local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            pcall(function()
-                hum:ScaleTo(currentScale)
-            end)
+        if char then
+            setCharacterScale(char, currentScale)
         end
     end
 })
@@ -247,7 +261,7 @@ InfoTab:CreateParagraph({
 
 InfoTab:CreateParagraph({
     Title = "Changelog",
-    Text = "- Luna UI\n- Slider sem textbox\n- Player Size 0.1–10"
+    Text = "- Player Size via BodyScales\n- Luna UI\n- Stability fixes"
 })
 
 ----------------------------------------------------------------
@@ -279,10 +293,5 @@ end)
 
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(0.5)
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        pcall(function()
-            hum:ScaleTo(currentScale)
-        end)
-    end
+    setCharacterScale(char, currentScale)
 end)
