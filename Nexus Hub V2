@@ -29,6 +29,7 @@ local infStaminaEnabled = false
 
 local cframeSpeed = 1
 local gravity = 196.2
+local currentScale = 1
 
 local storedEffects = {}
 local staminaConn
@@ -204,7 +205,47 @@ InGameTab:CreateToggle({
     end
 }, "Game_Performance")
 
--- INFORMATION TAB (COM RELÓGIO FUNCIONAL)
+-- PLAYER SIZE INPUT (LIMITE ATÉ 10)
+InGameTab:CreateInput({
+    Name = "Player Size",
+    Description = "0.1 = mínimo | 1 = normal | 10 = máximo",
+    PlaceholderText = "Ex: 2.5",
+    CurrentValue = "1",
+    Numeric = true,
+    MaxCharacters = 4,
+    Enter = true,
+    Callback = function(text)
+        local size = tonumber(text)
+        if not size then return end
+
+        -- limites
+        size = math.clamp(size, 0.1, 10)
+        currentScale = size
+
+        local char = LocalPlayer.Character
+        if not char then return end
+
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+
+        pcall(function()
+            hum:ScaleTo(size)
+        end)
+    end
+}, "Game_PlayerSize")
+
+-- reaplica o tamanho ao respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        pcall(function()
+            hum:ScaleTo(currentScale)
+        end)
+    end
+end)
+
+-- INFORMATION TAB (COM RELÓGIO)
 local InfoTab = Window:CreateTab({
     Name = "Information 💾",
     Icon = "info",
@@ -230,7 +271,7 @@ InfoTab:CreateParagraph({
 
 InfoTab:CreateParagraph({
     Title = "Changelog",
-    Text = "- Stability\n- Forsaken Support\n- Noclip Bypass"
+    Text = "- Stability\n- Forsaken Support\n- Noclip Bypass\n- Player Size Control"
 })
 
 -- INF JUMP
