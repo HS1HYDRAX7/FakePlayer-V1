@@ -229,7 +229,7 @@ end)
 
 InfoTab:CreateParagraph({
 	Title = "Creators",
-	Text = "Hydra (Owner)"
+	Text = "Hydra (Owner)\nLincoln(My girlfriend)"
 })
 
 InfoTab:CreateParagraph({
