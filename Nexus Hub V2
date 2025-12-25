@@ -1,4 +1,4 @@
--- Luna Interface Suite
+-- Luna Interface Suite (SEM KEY / SEM CONFIG / SEM FLAGS)
 local Luna = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua",
     true
@@ -18,18 +18,17 @@ local Window = Luna:CreateWindow({
     LogoID = nil,
     LoadingEnabled = true,
     LoadingTitle = "Nexus Hub",
-    LoadingSubtitle = "Luna Interface Suite",
-    ConfigSettings = {
-        RootFolder = nil,
-        ConfigFolder = "NexusHub"
-    }
+    LoadingSubtitle = "Luna Interface Suite"
 })
 
--- STATES
+----------------------------------------------------------------
+-- STATE
+----------------------------------------------------------------
 local playerEnabled = false
 local noclipEnabled = false
 local infJumpEnabled = false
 local infStaminaEnabled = false
+
 local cframeSpeed = 1
 local gravity = 196.2
 local currentScale = 1
@@ -197,7 +196,7 @@ InGameTab:CreateToggle({
     end
 })
 
--- PLAYER SIZE SLIDER
+-- PLAYER SIZE SLIDER (SEM FLAG)
 InGameTab:CreateSlider({
     Name = "Player Size",
     Description = "0.1 = mínimo | 1 = normal | 10 = máximo",
@@ -214,7 +213,7 @@ InGameTab:CreateSlider({
             end)
         end
     end
-}, "PlayerSize")
+})
 
 ----------------------------------------------------------------
 -- INFORMATION TAB
@@ -248,7 +247,7 @@ InfoTab:CreateParagraph({
 
 InfoTab:CreateParagraph({
     Title = "Changelog",
-    Text = "- Luna migration\n- Player Size Slider\n- Stability fixes"
+    Text = "- Luna UI\n- Slider sem textbox\n- Player Size 0.1–10"
 })
 
 ----------------------------------------------------------------
