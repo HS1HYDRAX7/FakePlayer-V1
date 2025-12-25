@@ -97,7 +97,7 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({
 	Name = "CFrame Speed",
-	Range = {1,170},
+	Range = {1,70},
 	Increment = 1,
 	CurrentValue = 1,
 	Callback = function(v)
