@@ -1,23 +1,13 @@
 local Luna = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
+    "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/refs/heads/master/source.lua",
+    true
 ))()
-
-local Window = Luna:CreateWindow({
-    Name = "Nexus Hub v2.0.1 ☄️",
-    Subtitle = "by Hydra",
-    LoadingEnabled = true,
-    LoadingTitle = "Nexus Hub V2 ☄️",
-    LoadingSubtitle = "Loading systems...",
-    ConfigSettings = {
-        RootFolder = nil,
-        ConfigFolder = "NexusHub"
-    }
-})
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+
 local LocalPlayer = Players.LocalPlayer
 
 local playerEnabled = false
@@ -28,233 +18,274 @@ local infStaminaEnabled = false
 local cframeSpeed = 1
 local gravity = 196.2
 
-local storedEffects = {}
 local staminaConn
 local staminaModule
 local noclipConn
 local originalCollisions = {}
+local storedEffects = {}
 
 local function applyNoclip(character)
-	if noclipConn then
-		noclipConn:Disconnect()
-		noclipConn = nil
-	end
-	if not character then return end
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
 
-	originalCollisions = {}
-	for _, part in ipairs(character:GetDescendants()) do
-		if part:IsA("BasePart") then
-			originalCollisions[part] = part.CanCollide
-			part.CanCollide = false
-		end
-	end
+    if not noclipEnabled or not character then return end
 
-	noclipConn = RunService.Stepped:Connect(function()
-		if not noclipEnabled then return end
-		if not character or not character.Parent then return end
-		for _, part in ipairs(character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end)
+    originalCollisions = {}
+    for _, p in ipairs(character:GetDescendants()) do
+        if p:IsA("BasePart") then
+            originalCollisions[p] = p.CanCollide
+            p.CanCollide = false
+        end
+    end
+
+    noclipConn = RunService.Stepped:Connect(function()
+        if not noclipEnabled then return end
+        if not character or not character.Parent then return end
+
+        for _, p in ipairs(character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
+    end)
 end
 
-local function removeNoclip()
-	if noclipConn then
-		noclipConn:Disconnect()
-		noclipConn = nil
-	end
-	for part, state in pairs(originalCollisions) do
-		if part and part.Parent then
-			part.CanCollide = state
-		end
-	end
-	originalCollisions = {}
+local function restoreCollisions()
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+
+    for p, state in pairs(originalCollisions) do
+        if p and p.Parent then
+            p.CanCollide = state
+        end
+    end
+
+    originalCollisions = {}
 end
 
-LocalPlayer.CharacterAdded:Connect(function(character)
-	if noclipEnabled then
-		task.wait(0.2)
-		applyNoclip(character)
-	end
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.2)
+    if noclipEnabled then
+        applyNoclip(char)
+    end
 end)
 
+local Window = Luna:CreateWindow({
+    Name = "Nexus Hub v1.3.9",
+    Subtitle = "by Hydra",
+
+    LoadingEnabled = true,
+    LoadingTitle = "Nexus Hub",
+    LoadingSubtitle = "Loading systems...",
+
+    OnClose = function() end,
+    OnMinimize = function() end,
+
+    ConfigSettings = {
+        RootFolder = nil,
+        ConfigFolder = "NexusHub"
+    }
+})
+
+Window:CreateHomeTab({
+    SupportedExecutors = {"Krnl","Fluxus","Synapse X","Electron","Delta"},
+    DiscordInvite = "",
+    Icon = 1
+})
+
 local PlayerTab = Window:CreateTab({
-	Name = "Player",
-	Icon = "person",
-	ImageSource = "Material",
-	ShowTitle = true
+    Name = "Player",
+    Icon = "person",
+    ImageSource = "Material",
+    ShowTitle = true
 })
 
 PlayerTab:CreateToggle({
-	Name = "Enable Player",
-	CurrentValue = false,
-	Callback = function(v)
-		playerEnabled = v
-	end
+    Name = "Enable Player",
+    CurrentValue = false,
+    Callback = function(v)
+        playerEnabled = v
+    end
 })
 
 PlayerTab:CreateSlider({
-	Name = "CFrame Speed",
-	Range = {1,70},
-	Increment = 1,
-	CurrentValue = 1,
-	Callback = function(v)
-		cframeSpeed = v
-	end
+    Name = "CFrame Speed",
+    Range = {1,170},
+    Increment = 1,
+    CurrentValue = 1,
+    Callback = function(v)
+        cframeSpeed = v
+    end
 })
 
 PlayerTab:CreateSlider({
-	Name = "Gravity",
-	Range = {0,500},
-	Increment = 1,
-	CurrentValue = 196,
-	Callback = function(v)
-		gravity = v
-		if playerEnabled then
-			workspace.Gravity = v
-		end
-	end
+    Name = "Gravity",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 196,
+    Callback = function(v)
+        gravity = v
+        if playerEnabled then
+            workspace.Gravity = v
+        end
+    end
 })
 
 PlayerTab:CreateToggle({
-	Name = "Noclip",
-	CurrentValue = false,
-	Callback = function(v)
-		noclipEnabled = v
-		if v then
-			applyNoclip(LocalPlayer.Character)
-		else
-			removeNoclip()
-		end
-	end
+    Name = "Noclip (Persistent)",
+    CurrentValue = false,
+    Callback = function(v)
+        noclipEnabled = v
+        if v then
+            applyNoclip(LocalPlayer.Character)
+        else
+            restoreCollisions()
+        end
+    end
 })
 
 PlayerTab:CreateToggle({
-	Name = "Infinite Jump",
-	CurrentValue = false,
-	Callback = function(v)
-		infJumpEnabled = v
-	end
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Callback = function(v)
+        infJumpEnabled = v
+    end
 })
 
 local ForsakenTab = Window:CreateTab({
-	Name = "Forsaken",
-	Icon = "description",
-	ImageSource = "Material",
-	ShowTitle = true
+    Name = "Forsaken",
+    Icon = "bolt",
+    ImageSource = "Material",
+    ShowTitle = true
 })
 
 ForsakenTab:CreateToggle({
-	Name = "Infinite Stamina",
-	CurrentValue = false,
-	Callback = function(v)
-		infStaminaEnabled = v
-		if staminaConn then
-			staminaConn:Disconnect()
-			staminaConn = nil
-		end
-		if v then
-			local rs = cloneref(game:GetService("ReplicatedStorage"))
-			local sprintModule = rs:WaitForChild("Systems")
-				:WaitForChild("Character")
-				:WaitForChild("Game")
-				:WaitForChild("Sprinting")
-			staminaModule = require(sprintModule)
-			staminaConn = RunService.Heartbeat:Connect(function()
-				if infStaminaEnabled then
-					staminaModule.Stamina = 750
-				end
-			end)
-		end
-	end
+    Name = "Infinite Stamina",
+    CurrentValue = false,
+    Callback = function(v)
+        infStaminaEnabled = v
+
+        if staminaConn then
+            staminaConn:Disconnect()
+            staminaConn = nil
+        end
+
+        if v then
+            local rs = cloneref(game:GetService("ReplicatedStorage"))
+            local sprint = rs:WaitForChild("Systems")
+                :WaitForChild("Character")
+                :WaitForChild("Game")
+                :WaitForChild("Sprinting")
+
+            staminaModule = require(sprint)
+
+            staminaConn = RunService.Heartbeat:Connect(function()
+                if infStaminaEnabled then
+                    staminaModule.Stamina = 750
+                end
+            end)
+        end
+    end
 })
 
 local InGameTab = Window:CreateTab({
-	Name = "In-game",
-	Icon = "sports_esports",
-	ImageSource = "Material",
-	ShowTitle = true
+    Name = "In-game",
+    Icon = "tune",
+    ImageSource = "Material",
+    ShowTitle = true
 })
 
 InGameTab:CreateToggle({
-	Name = "Performance Mode",
-	CurrentValue = false,
-	Callback = function(v)
-		if v then
-			storedEffects = {}
-			for _, obj in ipairs(workspace:GetDescendants()) do
-				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
-					storedEffects[obj] = obj.Enabled
-					obj.Enabled = false
-				end
-			end
-			for _, fx in ipairs(Lighting:GetChildren()) do
-				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
-				or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
-				or fx:IsA("DepthOfFieldEffect") then
-					storedEffects[fx] = fx.Enabled
-					fx.Enabled = false
-				end
-			end
-		else
-			for obj, state in pairs(storedEffects) do
-				if obj and obj.Parent then
-					obj.Enabled = state
-				end
-			end
-			storedEffects = {}
-		end
-	end
+    Name = "Performance Mode",
+    CurrentValue = false,
+    Callback = function(v)
+        if v then
+            storedEffects = {}
+
+            for _, o in ipairs(workspace:GetDescendants()) do
+                if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
+                    storedEffects[o] = o.Enabled
+                    o.Enabled = false
+                end
+            end
+
+            for _, fx in ipairs(Lighting:GetChildren()) do
+                if fx:IsA("BloomEffect")
+                or fx:IsA("BlurEffect")
+                or fx:IsA("SunRaysEffect")
+                or fx:IsA("ColorCorrectionEffect")
+                or fx:IsA("DepthOfFieldEffect") then
+                    storedEffects[fx] = fx.Enabled
+                    fx.Enabled = false
+                end
+            end
+        else
+            for o, s in pairs(storedEffects) do
+                if o and o.Parent then
+                    o.Enabled = s
+                end
+            end
+            storedEffects = {}
+        end
+    end
 })
 
 local InfoTab = Window:CreateTab({
-	Name = "Information",
-	Icon = "info",
-	ImageSource = "Material",
-	ShowTitle = true
+    Name = "Information",
+    Icon = "info",
+    ImageSource = "Material",
+    ShowTitle = true
 })
 
-local clockLabel = InfoTab:CreateLabel({
-	Text = "Clock: --:--:--",
-	Style = 1
+local ClockLabel = InfoTab:CreateLabel({
+    Text = "Time: --:--:--",
+    Style = 1
 })
 
 task.spawn(function()
-	while task.wait(1) do
-		clockLabel:Set("Clock: " .. os.date("%H:%M:%S"))
-	end
+    while task.wait(1) do
+        local t = os.date("*t")
+        ClockLabel:SetText(
+            string.format("Time: %02d:%02d:%02d", t.hour, t.min, t.sec)
+        )
+    end
 end)
 
 InfoTab:CreateParagraph({
-	Title = "Creators",
-	Text = "Hydra\nNexus Hub Team"
+    Title = "Creators",
+    Text = "Hydra\nNexus Hub Team"
 })
 
 InfoTab:CreateParagraph({
-	Title = "Changelog",
-	Text = "- Stability\n- Forsaken Support\n- Noclip Respawn Fix"
+    Title = "Changelog",
+    Text = "- Stability\n- Forsaken Support\n- Persistent Noclip"
 })
 
 UserInputService.JumpRequest:Connect(function()
-	if infJumpEnabled and LocalPlayer.Character then
-		local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-		end
-	end
+    if infJumpEnabled and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
 end)
 
 RunService.Heartbeat:Connect(function()
-	if not playerEnabled then return end
-	local character = LocalPlayer.Character
-	local hrp = character and character:FindFirstChild("HumanoidRootPart")
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not hrp or not humanoid then return end
-	workspace.Gravity = gravity
-	local dir = humanoid.MoveDirection
-	if dir.Magnitude > 0 then
-		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.08))
-	end
+    if not playerEnabled then return end
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return end
+
+    workspace.Gravity = gravity
+
+    local dir = hum.MoveDirection
+    if dir.Magnitude > 0 then
+        hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.08))
+    end
 end)
