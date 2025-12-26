@@ -296,6 +296,23 @@ OthersTab:CreateToggle({
 	end
 })
 
+-- CHAT MESSAGE ON KILL
+local function onKill(victim, killer)
+	if killer and killer.Name == "HSHSHYDRA" then
+		pcall(function()
+			game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(
+				"Hahahaha You've been OBLITERATED",
+				"All"
+			)
+		end)
+	end
+end
+
+-- Substitua "KillEvent" pelo RemoteEvent correto do jogo
+local killEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Kill")
+killEvent.OnClientEvent:Connect(onKill)
+
+-- CLOCK
 local clockLabel=InfoTab:CreateLabel({ Text="Clock: --:--:--", Style=1 })
 task.spawn(function()
 	while task.wait(1) do clockLabel:Set("Clock: "..os.date("%H:%M:%S")) end
