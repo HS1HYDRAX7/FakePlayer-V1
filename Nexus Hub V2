@@ -248,22 +248,41 @@ local function updateGenESP()
 					local bb = Instance.new("BillboardGui")
 					bb.Name = "NexusGen"
 					bb.Adornee = g
-					bb.Size = UDim2.fromOffset(140,20)
+					bb.Size = UDim2.fromOffset(160,20)
 					bb.StudsOffset = Vector3.new(0,3,0)
 					bb.AlwaysOnTop = true
 					bb.Parent = g
 					local tl = Instance.new("TextLabel")
+					tl.Name = "Text"
 					tl.Size = UDim2.fromScale(1,1)
 					tl.BackgroundTransparency = 1
 					tl.FontFace = FONT
-					tl.TextSize = 12
 					tl.TextStrokeTransparency = 0.3
-					tl.TextColor3 = Color3.fromRGB(255,255,120)
 					tl.Parent = bb
 				end
+
+				local tl = g.NexusGen.Text
 				local prog = g:FindFirstChild("Progress")
-				if g:FindFirstChild("NexusGen") then
-					g.NexusGen.TextLabel.Text = ((prog and math.floor(prog.Value * 100)) or 0) .. "%"
+				local percent = 0
+
+				if prog then
+					if prog.Value >= 100 then
+						percent = 100
+					elseif prog.Value > 1 then
+						percent = math.clamp(math.floor(prog.Value), 0, 100)
+					else
+						percent = math.clamp(math.floor(prog.Value * 100), 0, 100)
+					end
+				end
+
+				if percent >= 100 then
+					tl.Text = "Generator repaired"
+					tl.TextColor3 = Color3.fromRGB(0,120,0)
+					tl.TextSize = 10
+				else
+					tl.Text = percent .. "%"
+					tl.TextColor3 = Color3.fromRGB(255,255,120)
+					tl.TextSize = 12
 				end
 			else
 				if g:FindFirstChild("NexusHL") then g.NexusHL:Destroy() end
