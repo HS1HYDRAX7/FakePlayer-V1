@@ -51,6 +51,7 @@ local InfoTab = Window:CreateTab({
 	ShowTitle = true
 })
 
+-- PLAYER
 local playerEnabled = false
 local noclipEnabled = false
 local infJump = false
@@ -100,9 +101,7 @@ end)
 PlayerTab:CreateToggle({
 	Name = "Enable",
 	CurrentValue = false,
-	Callback = function(v)
-		playerEnabled = v
-	end
+	Callback = function(v) playerEnabled = v end
 })
 
 PlayerTab:CreateSlider({
@@ -110,9 +109,7 @@ PlayerTab:CreateSlider({
 	Range = {1,70},
 	Increment = 1,
 	CurrentValue = 1,
-	Callback = function(v)
-		cframeSpeed = v
-	end
+	Callback = function(v) cframeSpeed = v end
 })
 
 PlayerTab:CreateSlider({
@@ -120,9 +117,7 @@ PlayerTab:CreateSlider({
 	Range = {0,300},
 	Increment = 1,
 	CurrentValue = 196,
-	Callback = function(v)
-		gravity = v
-	end
+	Callback = function(v) gravity = v end
 })
 
 PlayerTab:CreateToggle({
@@ -130,28 +125,20 @@ PlayerTab:CreateToggle({
 	CurrentValue = false,
 	Callback = function(v)
 		noclipEnabled = v
-		if v then
-			applyNoclip(LocalPlayer.Character)
-		else
-			removeNoclip()
-		end
+		if v then applyNoclip(LocalPlayer.Character) else removeNoclip() end
 	end
 })
 
 PlayerTab:CreateToggle({
 	Name = "Infinite Jump",
 	CurrentValue = false,
-	Callback = function(v)
-		infJump = v
-	end
+	Callback = function(v) infJump = v end
 })
 
 UserInputService.JumpRequest:Connect(function()
 	if infJump and LocalPlayer.Character then
 		local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-		if hum then
-			hum:ChangeState(Enum.HumanoidStateType.Jumping)
-		end
+		if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 	end
 end)
 
@@ -168,12 +155,17 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- FORSAKEN
 local espSurvivor = false
 local espKiller = false
 local espGen = false
 local autoGen = false
 local genDelay = 5
 local genBusy = false
+
+local infStamina = false
+local staminaConn
+local staminaModule
 
 local function addHighlight(inst, color)
 	if inst:FindFirstChild("NexusHL") then return end
@@ -219,6 +211,7 @@ local function updatePlayerESP()
 	if not wp then return end
 	local killers = wp:FindFirstChild("Killers")
 	local survivors = wp:FindFirstChild("Survivors")
+
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer and plr.Character then
 			if killers and plr.Character.Parent == killers then
@@ -246,12 +239,11 @@ local function updateGenESP()
 	local ing = map and map:FindFirstChild("Ingame")
 	local m = ing and ing:FindFirstChild("Map")
 	if not m then return end
+
 	for _, g in ipairs(m:GetChildren()) do
 		if g.Name == "Generator" then
 			if espGen then
-				if not g:FindFirstChild("NexusHL") then
-					addHighlight(g, Color3.fromRGB(255,255,0))
-				end
+				addHighlight(g, Color3.fromRGB(255,255,0))
 				if not g:FindFirstChild("NexusGen") then
 					local bb = Instance.new("BillboardGui")
 					bb.Name = "NexusGen"
@@ -270,9 +262,8 @@ local function updateGenESP()
 					tl.Parent = bb
 				end
 				local prog = g:FindFirstChild("Progress")
-				if g:FindFirstChild("NexusGen") and g.NexusGen:FindFirstChildOfClass("TextLabel") then
-					local pct = prog and math.floor(prog.Value * 100) or 0
-					g.NexusGen.TextLabel.Text = pct .. "%"
+				if g:FindFirstChild("NexusGen") then
+					g.NexusGen.TextLabel.Text = ((prog and math.floor(prog.Value * 100)) or 0) .. "%"
 				end
 			else
 				if g:FindFirstChild("NexusHL") then g.NexusHL:Destroy() end
@@ -285,36 +276,46 @@ end
 ForsakenTab:CreateToggle({
 	Name = "ESP Survivors",
 	CurrentValue = false,
-	Callback = function(v)
-		espSurvivor = v
-		updatePlayerESP()
-	end
+	Callback = function(v) espSurvivor = v end
 })
 
 ForsakenTab:CreateToggle({
 	Name = "ESP Killers",
 	CurrentValue = false,
-	Callback = function(v)
-		espKiller = v
-		updatePlayerESP()
-	end
+	Callback = function(v) espKiller = v end
 })
 
 ForsakenTab:CreateToggle({
 	Name = "ESP Generators",
 	CurrentValue = false,
+	Callback = function(v) espGen = v end
+})
+
+ForsakenTab:CreateToggle({
+	Name = "Infinite Stamina",
+	CurrentValue = false,
 	Callback = function(v)
-		espGen = v
-		updateGenESP()
+		infStamina = v
+		if staminaConn then staminaConn:Disconnect() staminaConn = nil end
+		if v then
+			local sprintModule = ReplicatedStorage:WaitForChild("Systems")
+				:WaitForChild("Character")
+				:WaitForChild("Game")
+				:WaitForChild("Sprinting")
+			staminaModule = require(sprintModule)
+			staminaConn = RunService.Heartbeat:Connect(function()
+				if infStamina and staminaModule then
+					staminaModule.Stamina = staminaModule.MaxStamina or 999
+				end
+			end)
+		end
 	end
 })
 
 ForsakenTab:CreateToggle({
 	Name = "Auto Generator",
 	CurrentValue = false,
-	Callback = function(v)
-		autoGen = v
-	end
+	Callback = function(v) autoGen = v end
 })
 
 ForsakenTab:CreateSlider({
@@ -322,14 +323,13 @@ ForsakenTab:CreateSlider({
 	Range = {1,10},
 	Increment = 1,
 	CurrentValue = 5,
-	Callback = function(v)
-		genDelay = v
-	end
+	Callback = function(v) genDelay = v end
 })
 
 RunService.Heartbeat:Connect(function()
 	updatePlayerESP()
 	updateGenESP()
+
 	if not autoGen or genBusy then return end
 	genBusy = true
 	local map = workspace:FindFirstChild("Map")
@@ -338,9 +338,7 @@ RunService.Heartbeat:Connect(function()
 	if m then
 		for _, g in ipairs(m:GetChildren()) do
 			if g.Name == "Generator" and g:FindFirstChild("Remotes") then
-				pcall(function()
-					g.Remotes.RE:FireServer()
-				end)
+				pcall(function() g.Remotes.RE:FireServer() end)
 				task.wait(genDelay)
 			end
 		end
@@ -359,8 +357,9 @@ OthersTab:CreateToggle({
 				end
 			end
 			for _, fx in ipairs(Lighting:GetChildren()) do
-				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect") or fx:IsA("SunRaysEffect")
-				or fx:IsA("ColorCorrectionEffect") or fx:IsA("DepthOfFieldEffect") then
+				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
+				or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
+				or fx:IsA("DepthOfFieldEffect") then
 					fx.Enabled = false
 				end
 			end
