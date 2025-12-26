@@ -81,14 +81,14 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 end)
 
 local PlayerTab = Window:CreateTab({
-	Name = "Player",
+	Name = "Player 👤",
 	Icon = "person",
 	ImageSource = "Material",
 	ShowTitle = true
 })
 
 PlayerTab:CreateToggle({
-	Name = "Enable Player",
+	Name = "Enable",
 	CurrentValue = false,
 	Callback = function(v)
 		playerEnabled = v
@@ -140,7 +140,7 @@ PlayerTab:CreateToggle({
 })
 
 local ForsakenTab = Window:CreateTab({
-	Name = "Forsaken",
+	Name = "Forsaken 📑",
 	Icon = "description",
 	ImageSource = "Material",
 	ShowTitle = true
@@ -172,7 +172,7 @@ ForsakenTab:CreateToggle({
 })
 
 local InGameTab = Window:CreateTab({
-	Name = "In-game",
+	Name = "Others ✨",
 	Icon = "sports_esports",
 	ImageSource = "Material",
 	ShowTitle = true
