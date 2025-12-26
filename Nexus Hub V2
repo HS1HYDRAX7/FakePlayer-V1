@@ -1,5 +1,5 @@
 local Luna = loadstring(game:HttpGet(
-	"https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
+    "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
 ))()
 
 local Players = game:GetService("Players")
@@ -7,12 +7,11 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local LocalPlayer = Players.LocalPlayer
 local FONT = Font.new("rbxassetid://12187370928")
 
 local Window = Luna:CreateWindow({
-	Name = "Nexus Hub v2.0.6 ☄️",
+	Name = "Nexus Hub v2.1.0 ☄️",
 	Subtitle = "by Hydra",
 	LoadingEnabled = true,
 	LoadingTitle = "Nexus Hub V2 ☄️",
@@ -72,15 +71,7 @@ PlayerTab:CreateToggle({
 	Name="Noclip", CurrentValue=false,
 	Callback=function(v)
 		noclipEnabled=v
-		task.spawn(function()
-			pcall(function()
-				if v then
-					applyNoclip(LocalPlayer.Character)
-				else
-					removeNoclip()
-				end
-			end)
-		end)
+		if v then applyNoclip(LocalPlayer.Character) else removeNoclip() end
 	end
 })
 PlayerTab:CreateToggle({ Name="Infinite Jump", CurrentValue=false, Callback=function(v) infJump=v end })
@@ -112,6 +103,7 @@ local espGen=false
 local autoGen=false
 local genDelay=5
 local genBusy=false
+
 local infStamina=false
 local staminaConn
 local staminaModule
@@ -206,7 +198,9 @@ local function updateGenESP()
 				local prog=g:FindFirstChild("Progress")
 				local percent=prog and normalizeProgress(prog.Value) or 0
 				local completed=percent>=100
+
 				addHighlight(g,completed and DARK_GREEN or YELLOW)
+
 				if not g:FindFirstChild("NexusGen") then
 					local bb=Instance.new("BillboardGui")
 					bb.Name="NexusGen"
@@ -222,6 +216,7 @@ local function updateGenESP()
 					tl.TextStrokeTransparency=0.3
 					tl.Parent=bb
 				end
+
 				local tl=g.NexusGen.TextLabel
 				if completed then
 					tl.Text="Generator repaired"
@@ -267,6 +262,7 @@ ForsakenTab:CreateSlider({ Name="Auto Gen Speed", Range={1,10}, Increment=1, Cur
 RunService.Heartbeat:Connect(function()
 	updatePlayerESP()
 	updateGenESP()
+
 	if not autoGen or genBusy then return end
 	genBusy=true
 	local map=workspace:FindFirstChild("Map")
@@ -283,7 +279,6 @@ RunService.Heartbeat:Connect(function()
 	genBusy=false
 end)
 
--- OTHERS
 OthersTab:CreateToggle({
 	Name="Performance Mode", CurrentValue=false,
 	Callback=function(v)
@@ -301,50 +296,6 @@ OthersTab:CreateToggle({
 	end
 })
 
-local forceR15Enabled=false
-OthersTab:CreateToggle({
-	Name = "Force R15",
-	CurrentValue = false,
-	Callback = function(v)
-		forceR15Enabled = v
-		task.spawn(function()
-			pcall(function()
-				local char = LocalPlayer.Character
-				if char then
-					local humanoid = char:FindFirstChildOfClass("Humanoid")
-					if humanoid then
-						task.wait(0.2)
-						local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
-						if hd then
-							humanoid:ApplyDescription(hd)
-							humanoid.RigType = v and Enum.HumanoidRigType.R15 or Enum.HumanoidRigType.R6
-						end
-					end
-				end
-			end)
-		end)
-	end
-})
-
-LocalPlayer.CharacterAdded:Connect(function(char)
-	if forceR15Enabled then
-		task.spawn(function()
-			pcall(function()
-				task.wait(0.3)
-				local humanoid = char:FindFirstChildOfClass("Humanoid")
-				if humanoid then
-					local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
-					if hd then
-						humanoid:ApplyDescription(hd)
-						humanoid.RigType = Enum.HumanoidRigType.R15
-					end
-				end
-			end)
-		end)
-	end
-end)
-
--- CLOCK & CREDITS
 local clockLabel=InfoTab:CreateLabel({ Text="Clock: --:--:--", Style=1 })
 task.spawn(function()
 	while task.wait(1) do clockLabel:Set("Clock: "..os.date("%H:%M:%S")) end
