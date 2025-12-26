@@ -30,6 +30,27 @@ local PlayerTab = Window:CreateTab({
 	ShowTitle = true
 })
 
+local ForsakenTab = Window:CreateTab({
+	Name = "Forsaken 📑",
+	Icon = "description",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+local OthersTab = Window:CreateTab({
+	Name = "Others ✨",
+	Icon = "sports_esports",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
+local InfoTab = Window:CreateTab({
+	Name = "Information",
+	Icon = "info",
+	ImageSource = "Material",
+	ShowTitle = true
+})
+
 local playerEnabled = false
 local noclipEnabled = false
 local infJump = false
@@ -50,6 +71,7 @@ local function applyNoclip(character)
 	end
 	noclipConn = RunService.Stepped:Connect(function()
 		if not noclipEnabled then return end
+		if not character.Parent then return end
 		for _, p in ipairs(character:GetDescendants()) do
 			if p:IsA("BasePart") then
 				p.CanCollide = false
@@ -146,48 +168,12 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-local ForsakenTab = Window:CreateTab({
-	Name = "Forsaken 📑",
-	Icon = "description",
-	ImageSource = "Material",
-	ShowTitle = true
-})
-
 local espSurvivor = false
 local espKiller = false
 local espGen = false
 local autoGen = false
 local genDelay = 5
-local autoBusy = false
-local infStamina = false
-local staminaConn
-local staminaModule
-
-local function removeAllESP()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			if plr.Character:FindFirstChild("NexusHL") then
-				plr.Character.NexusHL:Destroy()
-			end
-			if plr.Character:FindFirstChild("NexusName") then
-				plr.Character.NexusName:Destroy()
-			end
-		end
-	end
-	local map = workspace:FindFirstChild("Map")
-	local ing = map and map:FindFirstChild("Ingame")
-	local m = ing and ing:FindFirstChild("Map")
-	if m then
-		for _, g in ipairs(m:GetChildren()) do
-			if g:FindFirstChild("NexusHL") then
-				g.NexusHL:Destroy()
-			end
-			if g:FindFirstChild("NexusGen") then
-				g.NexusGen:Destroy()
-			end
-		end
-	end
-end
+local genBusy = false
 
 local function addHighlight(inst, color)
 	if inst:FindFirstChild("NexusHL") then return end
@@ -223,53 +209,36 @@ local function addNameESP(char, text, color)
 	tl.Parent = bb
 end
 
+local function clearCharESP(char)
+	if char:FindFirstChild("NexusHL") then char.NexusHL:Destroy() end
+	if char:FindFirstChild("NexusName") then char.NexusName:Destroy() end
+end
+
 local function updatePlayerESP()
-	removeAllESP()
 	local wp = workspace:FindFirstChild("Players")
 	if not wp then return end
 	local killers = wp:FindFirstChild("Killers")
 	local survivors = wp:FindFirstChild("Survivors")
 	for _, plr in ipairs(Players:GetPlayers()) do
 		if plr ~= LocalPlayer and plr.Character then
-			if espKiller and killers and plr.Character.Parent == killers then
-				addHighlight(plr.Character, Color3.fromRGB(255,0,0))
-				addNameESP(plr.Character, plr.Name, Color3.fromRGB(255,80,80))
+			if killers and plr.Character.Parent == killers then
+				if espKiller then
+					addHighlight(plr.Character, Color3.fromRGB(255,0,0))
+					addNameESP(plr.Character, plr.Name, Color3.fromRGB(255,80,80))
+				else
+					clearCharESP(plr.Character)
+				end
 			end
-			if espSurvivor and survivors and plr.Character.Parent == survivors then
-				addHighlight(plr.Character, Color3.fromRGB(0,255,0))
-				addNameESP(plr.Character, plr.Name, Color3.fromRGB(80,255,80))
+			if survivors and plr.Character.Parent == survivors then
+				if espSurvivor then
+					addHighlight(plr.Character, Color3.fromRGB(0,255,0))
+					addNameESP(plr.Character, plr.Name, Color3.fromRGB(80,255,80))
+				else
+					clearCharESP(plr.Character)
+				end
 			end
 		end
 	end
-end
-
-local function addGenESP(gen)
-	if gen:FindFirstChild("NexusGen") then return end
-	addHighlight(gen, Color3.fromRGB(255,255,0))
-	local bb = Instance.new("BillboardGui")
-	bb.Name = "NexusGen"
-	bb.Adornee = gen
-	bb.Size = UDim2.fromOffset(80,18)
-	bb.StudsOffset = Vector3.new(0,4,0)
-	bb.AlwaysOnTop = true
-	bb.Parent = gen
-	local tl = Instance.new("TextLabel")
-	tl.Size = UDim2.fromScale(1,1)
-	tl.BackgroundTransparency = 1
-	tl.FontFace = FONT
-	tl.TextSize = 12
-	tl.TextColor3 = Color3.fromRGB(255,255,0)
-	tl.TextStrokeTransparency = 0.3
-	tl.Parent = bb
-	RunService.Heartbeat:Connect(function()
-		if not gen or not gen.Parent then return end
-		local p = gen:FindFirstChild("Progress")
-		if p and p:IsA("NumberValue") then
-			tl.Text = math.floor(p.Value) .. "%"
-		else
-			tl.Text = "GEN"
-		end
-	end)
 end
 
 local function updateGenESP()
@@ -278,8 +247,37 @@ local function updateGenESP()
 	local m = ing and ing:FindFirstChild("Map")
 	if not m then return end
 	for _, g in ipairs(m:GetChildren()) do
-		if g.Name == "Generator" and espGen then
-			addGenESP(g)
+		if g.Name == "Generator" then
+			if espGen then
+				if not g:FindFirstChild("NexusHL") then
+					addHighlight(g, Color3.fromRGB(255,255,0))
+				end
+				if not g:FindFirstChild("NexusGen") then
+					local bb = Instance.new("BillboardGui")
+					bb.Name = "NexusGen"
+					bb.Adornee = g
+					bb.Size = UDim2.fromOffset(140,20)
+					bb.StudsOffset = Vector3.new(0,3,0)
+					bb.AlwaysOnTop = true
+					bb.Parent = g
+					local tl = Instance.new("TextLabel")
+					tl.Size = UDim2.fromScale(1,1)
+					tl.BackgroundTransparency = 1
+					tl.FontFace = FONT
+					tl.TextSize = 12
+					tl.TextStrokeTransparency = 0.3
+					tl.TextColor3 = Color3.fromRGB(255,255,120)
+					tl.Parent = bb
+				end
+				local prog = g:FindFirstChild("Progress")
+				if g:FindFirstChild("NexusGen") and g.NexusGen:FindFirstChildOfClass("TextLabel") then
+					local pct = prog and math.floor(prog.Value * 100) or 0
+					g.NexusGen.TextLabel.Text = pct .. "%"
+				end
+			else
+				if g:FindFirstChild("NexusHL") then g.NexusHL:Destroy() end
+				if g:FindFirstChild("NexusGen") then g.NexusGen:Destroy() end
+			end
 		end
 	end
 end
@@ -307,8 +305,7 @@ ForsakenTab:CreateToggle({
 	CurrentValue = false,
 	Callback = function(v)
 		espGen = v
-		removeAllESP()
-		if v then updateGenESP() end
+		updateGenESP()
 	end
 })
 
@@ -330,30 +327,11 @@ ForsakenTab:CreateSlider({
 	end
 })
 
-ForsakenTab:CreateToggle({
-	Name = "Infinite Stamina",
-	CurrentValue = false,
-	Callback = function(v)
-		infStamina = v
-		if staminaConn then staminaConn:Disconnect() staminaConn = nil end
-		if v then
-			local sprint = ReplicatedStorage:WaitForChild("Systems")
-				:WaitForChild("Character")
-				:WaitForChild("Game")
-				:WaitForChild("Sprinting")
-			staminaModule = require(sprint)
-			staminaConn = RunService.Heartbeat:Connect(function()
-				if infStamina then
-					staminaModule.Stamina = 999
-				end
-			end)
-		end
-	end
-})
-
 RunService.Heartbeat:Connect(function()
-	if not autoGen or autoBusy then return end
-	autoBusy = true
+	updatePlayerESP()
+	updateGenESP()
+	if not autoGen or genBusy then return end
+	genBusy = true
 	local map = workspace:FindFirstChild("Map")
 	local ing = map and map:FindFirstChild("Ingame")
 	local m = ing and ing:FindFirstChild("Map")
@@ -367,73 +345,41 @@ RunService.Heartbeat:Connect(function()
 			end
 		end
 	end
-	autoBusy = false
+	genBusy = false
 end)
-
-local OthersTab = Window:CreateTab({
-	Name = "Others ✨",
-	Icon = "sports_esports",
-	ImageSource = "Material",
-	ShowTitle = true
-})
-
-local stored = {}
 
 OthersTab:CreateToggle({
 	Name = "Performance Mode",
 	CurrentValue = false,
 	Callback = function(v)
 		if v then
-			stored = {}
-			for _, o in ipairs(workspace:GetDescendants()) do
-				if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then
-					stored[o] = o.Enabled
-					o.Enabled = false
+			for _, obj in ipairs(workspace:GetDescendants()) do
+				if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+					obj.Enabled = false
 				end
 			end
 			for _, fx in ipairs(Lighting:GetChildren()) do
-				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect")
-				or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect")
-				or fx:IsA("DepthOfFieldEffect") then
-					stored[fx] = fx.Enabled
+				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect") or fx:IsA("SunRaysEffect")
+				or fx:IsA("ColorCorrectionEffect") or fx:IsA("DepthOfFieldEffect") then
 					fx.Enabled = false
 				end
 			end
-		else
-			for o, s in pairs(stored) do
-				if o and o.Parent then
-					o.Enabled = s
-				end
-			end
-			stored = {}
 		end
 	end
 })
 
-local InfoTab = Window:CreateTab({
-	Name = "Information",
-	Icon = "info",
-	ImageSource = "Material",
-	ShowTitle = true
-})
-
-local clock = InfoTab:CreateLabel({
+local clockLabel = InfoTab:CreateLabel({
 	Text = "Clock: --:--:--",
 	Style = 1
 })
 
 task.spawn(function()
 	while task.wait(1) do
-		clock:Set("Clock: " .. os.date("%H:%M:%S"))
+		clockLabel:Set("Clock: " .. os.date("%H:%M:%S"))
 	end
 end)
 
 InfoTab:CreateParagraph({
 	Title = "Creators",
-	Text = "Hydra"
-})
-
-InfoTab:CreateParagraph({
-	Title = "Changelog",
-	Text = "- ESP Highlight\n- Auto Generator\n- Stability"
+	Text = "Hydra (Owner)"
 })
