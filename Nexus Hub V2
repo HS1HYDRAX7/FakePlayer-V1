@@ -81,7 +81,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 end)
 
 local PlayerTab = Window:CreateTab({
-	Name = "Player 👤",
+	Name = "Player",
 	Icon = "person",
 	ImageSource = "Material",
 	ShowTitle = true
