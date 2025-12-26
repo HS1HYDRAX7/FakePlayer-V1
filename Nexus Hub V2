@@ -72,7 +72,15 @@ PlayerTab:CreateToggle({
 	Name="Noclip", CurrentValue=false,
 	Callback=function(v)
 		noclipEnabled=v
-		if v then applyNoclip(LocalPlayer.Character) else removeNoclip() end
+		task.spawn(function()
+			pcall(function()
+				if v then
+					applyNoclip(LocalPlayer.Character)
+				else
+					removeNoclip()
+				end
+			end)
+		end)
 	end
 })
 PlayerTab:CreateToggle({ Name="Infinite Jump", CurrentValue=false, Callback=function(v) infJump=v end })
@@ -275,6 +283,7 @@ RunService.Heartbeat:Connect(function()
 	genBusy=false
 end)
 
+-- OTHERS
 OthersTab:CreateToggle({
 	Name="Performance Mode", CurrentValue=false,
 	Callback=function(v)
@@ -292,33 +301,46 @@ OthersTab:CreateToggle({
 	end
 })
 
--- FORCE R15
-local forceR15Enabled = false
-
+local forceR15Enabled=false
 OthersTab:CreateToggle({
 	Name = "Force R15",
 	CurrentValue = false,
 	Callback = function(v)
 		forceR15Enabled = v
-		local char = LocalPlayer.Character
-		if char and char:FindFirstChildOfClass("Humanoid") then
-			local humanoid = char:FindFirstChildOfClass("Humanoid")
-			local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
-			humanoid:ApplyDescription(hd)
-			humanoid.RigType = v and Enum.HumanoidRigType.R15 or Enum.HumanoidRigType.R6
-		end
+		task.spawn(function()
+			pcall(function()
+				local char = LocalPlayer.Character
+				if char then
+					local humanoid = char:FindFirstChildOfClass("Humanoid")
+					if humanoid then
+						task.wait(0.2)
+						local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
+						if hd then
+							humanoid:ApplyDescription(hd)
+							humanoid.RigType = v and Enum.HumanoidRigType.R15 or Enum.HumanoidRigType.R6
+						end
+					end
+				end
+			end)
+		end)
 	end
 })
 
 LocalPlayer.CharacterAdded:Connect(function(char)
 	if forceR15Enabled then
-		task.wait(0.2)
-		local humanoid = char:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
-			humanoid:ApplyDescription(hd)
-			humanoid.RigType = Enum.HumanoidRigType.R15
-		end
+		task.spawn(function()
+			pcall(function()
+				task.wait(0.3)
+				local humanoid = char:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
+					if hd then
+						humanoid:ApplyDescription(hd)
+						humanoid.RigType = Enum.HumanoidRigType.R15
+					end
+				end
+			end)
+		end)
 	end
 end)
 
