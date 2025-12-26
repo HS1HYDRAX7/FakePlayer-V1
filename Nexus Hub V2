@@ -104,7 +104,6 @@ local espGen=false
 local autoGen=false
 local genDelay=5
 local genBusy=false
-
 local infStamina=false
 local staminaConn
 local staminaModule
@@ -199,9 +198,7 @@ local function updateGenESP()
 				local prog=g:FindFirstChild("Progress")
 				local percent=prog and normalizeProgress(prog.Value) or 0
 				local completed=percent>=100
-
 				addHighlight(g,completed and DARK_GREEN or YELLOW)
-
 				if not g:FindFirstChild("NexusGen") then
 					local bb=Instance.new("BillboardGui")
 					bb.Name="NexusGen"
@@ -217,7 +214,6 @@ local function updateGenESP()
 					tl.TextStrokeTransparency=0.3
 					tl.Parent=bb
 				end
-
 				local tl=g.NexusGen.TextLabel
 				if completed then
 					tl.Text="Generator repaired"
@@ -263,7 +259,6 @@ ForsakenTab:CreateSlider({ Name="Auto Gen Speed", Range={1,10}, Increment=1, Cur
 RunService.Heartbeat:Connect(function()
 	updatePlayerESP()
 	updateGenESP()
-
 	if not autoGen or genBusy then return end
 	genBusy=true
 	local map=workspace:FindFirstChild("Map")
@@ -297,7 +292,37 @@ OthersTab:CreateToggle({
 	end
 })
 
--- RAINBOW CREDITS
+-- FORCE R15
+local forceR15Enabled = false
+
+OthersTab:CreateToggle({
+	Name = "Force R15",
+	CurrentValue = false,
+	Callback = function(v)
+		forceR15Enabled = v
+		local char = LocalPlayer.Character
+		if char and char:FindFirstChildOfClass("Humanoid") then
+			local humanoid = char:FindFirstChildOfClass("Humanoid")
+			local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
+			humanoid:ApplyDescription(hd)
+			humanoid.RigType = v and Enum.HumanoidRigType.R15 or Enum.HumanoidRigType.R6
+		end
+	end
+})
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	if forceR15Enabled then
+		task.wait(0.2)
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			local hd = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId)
+			humanoid:ApplyDescription(hd)
+			humanoid.RigType = Enum.HumanoidRigType.R15
+		end
+	end
+end)
+
+-- CLOCK & CREDITS
 local clockLabel=InfoTab:CreateLabel({ Text="Clock: --:--:--", Style=1 })
 task.spawn(function()
 	while task.wait(1) do clockLabel:Set("Clock: "..os.date("%H:%M:%S")) end
