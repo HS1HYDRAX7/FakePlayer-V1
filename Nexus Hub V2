@@ -1,10 +1,4 @@
---====================================================
--- Nexus Hub v2.0.6 ☄️
---====================================================
-
-local Luna = loadstring(game:HttpGet(
-	"https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
-))()
+local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,23 +7,147 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
---====================================================
--- WINDOW
---====================================================
-
 local Window = Luna:CreateWindow({
 	Name = "Nexus Hub v2.0.6 ☄️",
 	Subtitle = "by Hydra",
 	LoadingEnabled = true,
 	LoadingTitle = "Nexus Hub V2 ☄️",
 	LoadingSubtitle = "Loading systems...",
-	ConfigSettings = {
-		RootFolder = nil,
-		ConfigFolder = "NexusHub"
-	}
+	ConfigSettings = { RootFolder = nil, ConfigFolder = "NexusHub" }
 })
 
---====================================================
--- PLAYER TAB
---====================================================
--- (INALTERADO)
+local PlayerTab = Window:CreateTab({ Name = "Player", Icon = "person", ImageSource = "Material", ShowTitle = true })
+
+local playerEnabled = false
+local noclipEnabled = false
+local infJump = false
+local cframeSpeed = 1
+local gravity = 196.2
+local noclipConn
+local originalCollisions = {}
+
+local function applyNoclip(character)
+	if noclipConn then noclipConn:Disconnect() end
+	if not character then return end
+	originalCollisions = {}
+	for _, part in ipairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			originalCollisions[part] = part.CanCollide
+			part.CanCollide = false
+		end
+	end
+	noclipConn = RunService.Stepped:Connect(function()
+		if not noclipEnabled then return end
+		for _, part in ipairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end)
+end
+
+local function removeNoclip()
+	if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+	for part, state in pairs(originalCollisions) do
+		if part and part.Parent then
+			part.CanCollide = state
+		end
+	end
+	originalCollisions = {}
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	if noclipEnabled then task.wait(0.2) applyNoclip(char) end
+end)
+
+PlayerTab:CreateToggle({ Name = "Enable", CurrentValue = false, Callback = function(v) playerEnabled = v end })
+PlayerTab:CreateSlider({ Name = "CFrame Speed", Range = {1,70}, Increment = 1, CurrentValue = 1, Callback = function(v) cframeSpeed = v end })
+PlayerTab:CreateSlider({ Name = "Gravity", Range = {0,300}, Increment = 1, CurrentValue = 196, Callback = function(v) gravity = v end })
+PlayerTab:CreateToggle({ Name = "Noclip", CurrentValue = false, Callback = function(v) noclipEnabled = v if v then applyNoclip(LocalPlayer.Character) else removeNoclip() end end })
+PlayerTab:CreateToggle({ Name = "Infinite Jump", CurrentValue = false, Callback = function(v) infJump = v end })
+
+UserInputService.JumpRequest:Connect(function()
+	if infJump and LocalPlayer.Character then
+		local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+		if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if not playerEnabled then return end
+	local char = LocalPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hrp or not hum then return end
+	workspace.Gravity = gravity
+	local dir = hum.MoveDirection
+	if dir.Magnitude > 0 then
+		hrp.CFrame = hrp.CFrame + (dir * (cframeSpeed * 0.08))
+	end
+end)
+
+local ForsakenTab = Window:CreateTab({ Name = "Forsaken 📑", Icon = "description", ImageSource = "Material", ShowTitle = true })
+
+local espSurvivor = false
+local espKiller = false
+local espGen = false
+local autoGen = false
+local genDelay = 5
+local genBusy = false
+local infStamina = false
+local staminaConn
+local staminaModule
+
+local autoBlock = false
+local blockRange = 18
+local lastBlock = 0
+
+local blockAnims = {
+	"126830014841198","126355327951215","121086746534252","18885909645",
+	"98456918873918","105458270463374","83829782357897","125403313786645"
+}
+
+local function fireBlock()
+	if tick() - lastBlock < 0.5 then return end
+	lastBlock = tick()
+	ReplicatedStorage.Modules.Network.RemoteEvent:FireServer("UseActorAbility","Block")
+end
+
+ForsakenTab:CreateToggle({ Name = "Auto Block", CurrentValue = false, Callback = function(v) autoBlock = v end })
+ForsakenTab:CreateSlider({ Name = "Block Range", Range = {5,30}, Increment = 1, CurrentValue = 18, Callback = function(v) blockRange = v end })
+
+RunService.RenderStepped:Connect(function()
+	if not autoBlock then return end
+	local char = LocalPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character then
+			local ehrp = plr.Character:FindFirstChild("HumanoidRootPart")
+			local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+			local anim = hum and hum:FindFirstChildOfClass("Animator")
+			if ehrp and anim and (ehrp.Position - hrp.Position).Magnitude <= blockRange then
+				for _, tr in ipairs(anim:GetPlayingAnimationTracks()) do
+					local id = tostring(tr.Animation.AnimationId):match("%d+")
+					if table.find(blockAnims, id) then
+						fireBlock()
+					end
+				end
+			end
+		end
+	end
+end)
+
+local OthersTab = Window:CreateTab({ Name = "Others ✨", Icon = "sports_esports", ImageSource = "Material", ShowTitle = true })
+
+local InfoTab = Window:CreateTab({ Name = "Information", Icon = "info", ImageSource = "Material", ShowTitle = true })
+
+local clock = InfoTab:CreateLabel({ Text = "Clock: --:--:--", Style = 1 })
+
+task.spawn(function()
+	while task.wait(1) do
+		clock:Set("Clock: " .. os.date("%H:%M:%S"))
+	end
+end)
+
+InfoTab:CreateParagraph({ Title = "Creators", Text = "Hydra (Owner)\nLincoln" })
