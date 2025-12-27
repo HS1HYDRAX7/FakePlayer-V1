@@ -1,12 +1,12 @@
-local Luna = loadstring(game:HttpGet("https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"))()
+local Luna = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/Nebula-Softworks/Luna-Interface-Suite/main/source.lua"
+))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-
 local LocalPlayer = Players.LocalPlayer
 local FONT = Font.new("rbxassetid://12187370928")
 
@@ -24,6 +24,7 @@ local ForsakenTab = Window:CreateTab({ Name="Forsaken 📑", Icon="description",
 local OthersTab = Window:CreateTab({ Name="Others ✨", Icon="sports_esports", ImageSource="Material", ShowTitle=true })
 local InfoTab = Window:CreateTab({ Name="Information", Icon="info", ImageSource="Material", ShowTitle=true })
 
+-- PLAYER
 local playerEnabled=false
 local noclipEnabled=false
 local infJump=false
@@ -95,6 +96,7 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+-- FORSAKEN
 local espSurvivor=false
 local espKiller=false
 local espGen=false
@@ -105,9 +107,6 @@ local genBusy=false
 local infStamina=false
 local staminaConn
 local staminaModule
-
-local DARK_GREEN=Color3.fromRGB(0,120,0)
-local YELLOW=Color3.fromRGB(255,255,0)
 
 local function addHighlight(inst,color)
 	local hl=inst:FindFirstChild("NexusHL")
@@ -155,19 +154,31 @@ local function updatePlayerESP()
 	if not wp then return end
 	local killers=wp:FindFirstChild("Killers")
 	local survivors=wp:FindFirstChild("Survivors")
+
 	for _,plr in ipairs(Players:GetPlayers()) do
 		if plr~=LocalPlayer and plr.Character then
 			if killers and plr.Character.Parent==killers then
-				if espKiller then addHighlight(plr.Character,Color3.fromRGB(255,0,0)) addNameESP(plr.Character,plr.Name,Color3.fromRGB(255,80,80))
-				else clearCharESP(plr.Character) end
+				if espKiller then
+					addHighlight(plr.Character,Color3.fromRGB(255,0,0))
+					addNameESP(plr.Character,plr.Name,Color3.fromRGB(255,80,80))
+				else
+					clearCharESP(plr.Character)
+				end
 			end
 			if survivors and plr.Character.Parent==survivors then
-				if espSurvivor then addHighlight(plr.Character,Color3.fromRGB(0,255,0)) addNameESP(plr.Character,plr.Name,Color3.fromRGB(80,255,80))
-				else clearCharESP(plr.Character) end
+				if espSurvivor then
+					addHighlight(plr.Character,Color3.fromRGB(0,255,0))
+					addNameESP(plr.Character,plr.Name,Color3.fromRGB(80,255,80))
+				else
+					clearCharESP(plr.Character)
+				end
 			end
 		end
 	end
 end
+
+local DARK_GREEN=Color3.fromRGB(0,120,0)
+local YELLOW=Color3.fromRGB(255,255,0)
 
 local function normalizeProgress(v)
 	if v>=10000 then return math.clamp(math.floor(v/100),0,100) end
@@ -180,13 +191,16 @@ local function updateGenESP()
 	local ing=map and map:FindFirstChild("Ingame")
 	local m=ing and ing:FindFirstChild("Map")
 	if not m then return end
+
 	for _,g in ipairs(m:GetChildren()) do
 		if g.Name=="Generator" then
 			if espGen then
 				local prog=g:FindFirstChild("Progress")
 				local percent=prog and normalizeProgress(prog.Value) or 0
 				local completed=percent>=100
+
 				addHighlight(g,completed and DARK_GREEN or YELLOW)
+
 				if not g:FindFirstChild("NexusGen") then
 					local bb=Instance.new("BillboardGui")
 					bb.Name="NexusGen"
@@ -202,6 +216,7 @@ local function updateGenESP()
 					tl.TextStrokeTransparency=0.3
 					tl.Parent=bb
 				end
+
 				local tl=g.NexusGen.TextLabel
 				if completed then
 					tl.Text="Generator repaired"
@@ -223,73 +238,63 @@ end
 ForsakenTab:CreateToggle({ Name="ESP Survivors", CurrentValue=false, Callback=function(v) espSurvivor=v end })
 ForsakenTab:CreateToggle({ Name="ESP Killers", CurrentValue=false, Callback=function(v) espKiller=v end })
 ForsakenTab:CreateToggle({ Name="ESP Generators", CurrentValue=false, Callback=function(v) espGen=v end })
-ForsakenTab:CreateToggle({ Name="Infinite Stamina", CurrentValue=false, Callback=function(v)
-	infStamina=v
-	if staminaConn then staminaConn:Disconnect() staminaConn=nil end
-	if v then
-		local sprint=ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Character"):WaitForChild("Game"):WaitForChild("Sprinting")
-		staminaModule=require(sprint)
-		staminaConn=RunService.Heartbeat:Connect(function()
-			if infStamina and staminaModule then staminaModule.Stamina=staminaModule.MaxStamina or 999 end
-		end)
+
+ForsakenTab:CreateToggle({
+	Name="Infinite Stamina", CurrentValue=false,
+	Callback=function(v)
+		infStamina=v
+		if staminaConn then staminaConn:Disconnect() staminaConn=nil end
+		if v then
+			local sprint=ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Character"):WaitForChild("Game"):WaitForChild("Sprinting")
+			staminaModule=require(sprint)
+			staminaConn=RunService.Heartbeat:Connect(function()
+				if infStamina and staminaModule then
+					staminaModule.Stamina=staminaModule.MaxStamina or 999
+				end
+			end)
+		end
 	end
-end })
+})
+
 ForsakenTab:CreateToggle({ Name="Auto Generator", CurrentValue=false, Callback=function(v) autoGen=v end })
 ForsakenTab:CreateSlider({ Name="Auto Gen Speed", Range={1,10}, Increment=1, CurrentValue=5, Callback=function(v) genDelay=v end })
 
-local espItems=false
+RunService.Heartbeat:Connect(function()
+	updatePlayerESP()
+	updateGenESP()
 
-local function createItemESP(item)
-	if not item or item:FindFirstChild("NexusItemHL") then return end
-	local highlight = Instance.new("Highlight")
-	highlight.Name="NexusItemHL"
-	highlight.Adornee=item
-	highlight.FillColor=Color3.fromRGB(135,206,250)
-	highlight.OutlineColor=Color3.fromRGB(135,206,250)
-	highlight.FillTransparency=0.45
-	highlight.Parent=item
-	if not item:FindFirstChild("NexusItemName") then
-		local bb=Instance.new("BillboardGui")
-		bb.Name="NexusItemName"
-		bb.Adornee=item
-		bb.Size=UDim2.fromOffset(120,16)
-		bb.StudsOffset=Vector3.new(0,2,0)
-		bb.AlwaysOnTop=true
-		bb.Parent=item
-		local tl=Instance.new("TextLabel")
-		tl.Size=UDim2.fromScale(1,1)
-		tl.BackgroundTransparency=1
-		tl.Text=item.Name
-		tl.FontFace=FONT
-		tl.TextSize=11
-		tl.TextColor3=Color3.fromRGB(135,206,250)
-		tl.TextStrokeTransparency=0.3
-		tl.Parent=bb
-	end
-end
-
-local function updateItemsESP()
-	for _, obj in ipairs(Workspace:GetDescendants()) do
-		if obj:IsA("Tool") and espItems then createItemESP(obj)
-		elseif obj:IsA("Tool") and not espItems then
-			if obj:FindFirstChild("NexusItemHL") then obj.NexusItemHL:Destroy() end
-			if obj:FindFirstChild("NexusItemName") then obj.NexusItemName:Destroy() end
+	if not autoGen or genBusy then return end
+	genBusy=true
+	local map=workspace:FindFirstChild("Map")
+	local ing=map and map:FindFirstChild("Ingame")
+	local m=ing and ing:FindFirstChild("Map")
+	if m then
+		for _,g in ipairs(m:GetChildren()) do
+			if g.Name=="Generator" and g:FindFirstChild("Remotes") then
+				pcall(function() g.Remotes.RE:FireServer() end)
+				task.wait(genDelay)
+			end
 		end
 	end
-end
+	genBusy=false
+end)
 
-ForsakenTab:CreateToggle({ Name="ESP Items", CurrentValue=false, Callback=function(v) espItems=v end })
-
-OthersTab:CreateToggle({ Name="Performance Mode", CurrentValue=false, Callback=function(v)
-	if v then
-		for _,o in ipairs(Workspace:GetDescendants()) do
-			if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then o.Enabled=false end
-		end
-		for _,fx in ipairs(Lighting:GetChildren()) do
-			if fx:IsA("BloomEffect") or fx:IsA("BlurEffect") or fx:IsA("SunRaysEffect") or fx:IsA("ColorCorrectionEffect") or fx:IsA("DepthOfFieldEffect") then fx.Enabled=false end
+OthersTab:CreateToggle({
+	Name="Performance Mode", CurrentValue=false,
+	Callback=function(v)
+		if v then
+			for _,o in ipairs(workspace:GetDescendants()) do
+				if o:IsA("ParticleEmitter") or o:IsA("Trail") or o:IsA("Beam") then o.Enabled=false end
+			end
+			for _,fx in ipairs(Lighting:GetChildren()) do
+				if fx:IsA("BloomEffect") or fx:IsA("BlurEffect") or fx:IsA("SunRaysEffect")
+				or fx:IsA("ColorCorrectionEffect") or fx:IsA("DepthOfFieldEffect") then
+					fx.Enabled=false
+				end
+			end
 		end
 	end
-end })
+})
 
 local clockLabel=InfoTab:CreateLabel({ Text="Clock: --:--:--", Style=1 })
 task.spawn(function()
@@ -302,24 +307,4 @@ RunService.RenderStepped:Connect(function()
 	hue=(hue+1)%360
 	local c=Color3.fromHSV(hue/360,1,1)
 	if creditText.TextLabel then creditText.TextLabel.TextColor3=c end
-end)
-
-RunService.Heartbeat:Connect(function()
-	updatePlayerESP()
-	updateGenESP()
-	if espItems then updateItemsESP() end
-	if not autoGen or genBusy then return end
-	genBusy=true
-	local map=Workspace:FindFirstChild("Map")
-	local ing=map and map:FindFirstChild("Ingame")
-	local m=ing and ing:FindFirstChild("Map")
-	if m then
-		for _,g in ipairs(m:GetChildren()) do
-			if g.Name=="Generator" and g:FindFirstChild("Remotes") then
-				pcall(function() g.Remotes.RE:FireServer() end)
-				task.wait(genDelay)
-			end
-		end
-	end
-	genBusy=false
 end)
